@@ -11,6 +11,27 @@ delivery_service 네 곳에 흩어져 있었다. "말투를 좀 바꾸자"는 �
 값이 끼어드는 문장은 함수로, 고정된 문장은 상수로 둔다.
 """
 
+from datetime import datetime, timedelta, timezone
+
+KST = timezone(timedelta(hours=9))
+
+
+def mail_time(dt: datetime) -> str:
+    """메일 본문에 찍는 시각. '8월 29일 오후 2:32' (한국 시간).
+
+    계정 메일(인증·재설정)은 문구가 매번 글자까지 똑같았다. 제목도 같아서
+    Gmail이 같은 대화로 묶고, 앞 메일과 겹치는 본문을 통째로 '...' 뒤로
+    접어 버린다. 받는 사람은 버튼을 보려고 한 번 더 눌러야 했다.
+    그래서 만료 시각과 발송 시각을 본문 첫 줄과 끝 줄에 넣어, 메일마다
+    앞뒤가 서로 다르게 만든다. 보안 메일에 시각이 찍히는 건 그 자체로도
+    도움이 된다 — 내가 안 한 요청인지 바로 가늠할 수 있다.
+    """
+    d = dt.astimezone(KST)
+    ampm = "오전" if d.hour < 12 else "오후"
+    hour12 = d.hour % 12 or 12
+    return f"{d.month}월 {d.day}일 {ampm} {hour12}:{d.minute:02d}"
+
+
 # ── 알림 (푸시 · 앱 알림함 · 메일에 공통으로 쓰인다) ────────────────────
 
 #: 앱 알림함에서 묶이는 분류 이름
@@ -146,22 +167,27 @@ VERIFY_FOOTER = (
 )
 
 
+def verify_footer(sent_at: datetime) -> str:
+    return f"{VERIFY_FOOTER} — {mail_time(sent_at)} 발송"
+
+
 def verify_heading(username: str) -> str:
     return f"{username}님, SubFlow 가입을 환영합니다"
 
 
-def verify_item_body(expire_hours: int) -> str:
-    return f"아래 버튼을 누르면 확인이 끝납니다. 링크는 {expire_hours}시간 뒤 만료됩니다."
+def verify_item_body(expires_at: datetime) -> str:
+    return f"아래 버튼을 누르면 확인이 끝납니다. 링크는 {mail_time(expires_at)}까지 유효합니다."
 
 
-def verify_text(username: str, link: str, expire_hours: int) -> str:
+def verify_text(username: str, link: str, expires_at: datetime, sent_at: datetime) -> str:
     return (
         f"{username}님, SubFlow 가입을 환영합니다.\n\n"
         f"아래 링크를 열면 이메일 주소 확인이 끝납니다.\n"
         f"{link}\n\n"
-        f"이 링크는 {expire_hours}시간 뒤 만료됩니다.\n"
+        f"이 링크는 {mail_time(expires_at)}까지 유효합니다.\n"
         f"확인 전에도 SubFlow는 그대로 쓸 수 있지만, 결제일 알림 메일은 "
-        f"확인 후부터 발송됩니다.\n"
+        f"확인 후부터 발송됩니다.\n\n"
+        f"{mail_time(sent_at)} 발송\n"
     )
 
 
@@ -171,19 +197,24 @@ RESET_CTA = "비밀번호 재설정하기"
 RESET_FOOTER = "본인이 요청한 게 아니라면 이 메일을 무시하세요. 비밀번호는 그대로입니다."
 
 
+def reset_footer(requested_at: datetime) -> str:
+    return f"{RESET_FOOTER} — {mail_time(requested_at)} 요청"
+
+
 def reset_item_title(username: str) -> str:
     return f"{username}님, 아래 버튼으로 비밀번호를 새로 정하세요."
 
 
-def reset_item_body(expire_minutes: int) -> str:
-    return f"링크는 {expire_minutes}분 뒤 만료되며 한 번만 쓸 수 있습니다."
+def reset_item_body(expires_at: datetime) -> str:
+    return f"링크는 {mail_time(expires_at)}까지 쓸 수 있고, 한 번만 유효합니다."
 
 
-def reset_text(username: str, link: str, expire_minutes: int) -> str:
+def reset_text(username: str, link: str, expires_at: datetime, requested_at: datetime) -> str:
     return (
         f"{username}님,\n\n"
         f"SubFlow 비밀번호를 재설정하려면 아래 링크를 여세요.\n"
         f"{link}\n\n"
-        f"이 링크는 {expire_minutes}분 뒤 만료되며, 한 번만 쓸 수 있습니다.\n"
-        f"본인이 요청한 게 아니라면 이 메일을 무시하세요. 비밀번호는 그대로입니다.\n"
+        f"이 링크는 {mail_time(expires_at)}까지 쓸 수 있고, 한 번만 유효합니다.\n"
+        f"본인이 요청한 게 아니라면 이 메일을 무시하세요. 비밀번호는 그대로입니다.\n\n"
+        f"{mail_time(requested_at)} 요청\n"
     )

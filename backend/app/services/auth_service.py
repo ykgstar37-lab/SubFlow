@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -120,16 +121,20 @@ class AuthService:
             return
         token = create_email_verify_token(str(user.id), user.email)
         link = f"{settings.APP_BASE_URL.rstrip('/')}/verify-email?token={token}"
-        body = messages.verify_text(user.username, link, EMAIL_VERIFY_EXPIRE_HOURS)
+        # 토큰 만료와 같은 시각을 본문에도 적는다. 메일마다 값이 달라지므로
+        # Gmail이 같은 대화의 앞 메일과 겹친다고 보고 접어 버리지 않는다.
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(hours=EMAIL_VERIFY_EXPIRE_HOURS)
+        body = messages.verify_text(user.username, link, expires_at, now)
         html = render_email(
             heading=messages.verify_heading(user.username),
             items=[(
                 messages.VERIFY_ITEM_TITLE,
-                messages.verify_item_body(EMAIL_VERIFY_EXPIRE_HOURS),
+                messages.verify_item_body(expires_at),
             )],
             cta_label=messages.VERIFY_CTA,
             cta_url=link,
-            footer=messages.VERIFY_FOOTER,
+            footer=messages.verify_footer(now),
         )
         sent = await send_email(
             user.email, messages.subject(messages.VERIFY_SUBJECT), body, html=html
@@ -218,16 +223,18 @@ class AuthService:
 
         token = create_password_reset_token(str(user.id), user.hashed_password)
         link = f"{settings.APP_BASE_URL.rstrip('/')}/reset-password?token={token}"
-        body = messages.reset_text(user.username, link, PASSWORD_RESET_EXPIRE_MINUTES)
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES)
+        body = messages.reset_text(user.username, link, expires_at, now)
         html = render_email(
             heading=messages.RESET_HEADING,
             items=[(
                 messages.reset_item_title(user.username),
-                messages.reset_item_body(PASSWORD_RESET_EXPIRE_MINUTES),
+                messages.reset_item_body(expires_at),
             )],
             cta_label=messages.RESET_CTA,
             cta_url=link,
-            footer=messages.RESET_FOOTER,
+            footer=messages.reset_footer(now),
         )
         sent = await send_email(
             user.email, messages.subject(messages.RESET_SUBJECT), body, html=html
