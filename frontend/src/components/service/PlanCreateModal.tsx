@@ -27,6 +27,9 @@ export default function PlanCreateModal({
   const [currency, setCurrency] = useState("KRW");
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [description, setDescription] = useState("");
+  // 직접 넣는 금액은 대개 청구서에 찍힌 실결제액이라 포함가로 본다.
+  // 공식 가격표를 보고 적는 사람도 있어 끌 수 있게 둔다.
+  const [vatIncluded, setVatIncluded] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
@@ -35,6 +38,7 @@ export default function PlanCreateModal({
     setCurrency("KRW");
     setCycle("monthly");
     setDescription("");
+    setVatIncluded(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,6 +54,7 @@ export default function PlanCreateModal({
         currency,
         billing_cycle: cycle,
         description: description.trim() || undefined,
+        vat_included: vatIncluded,
       });
       toast.success(tr("요금제를 추가했습니다."));
       reset();
@@ -131,6 +136,21 @@ export default function PlanCreateModal({
             <option value="quarterly">{tr("분기")}</option>
           </select>
         </div>
+
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={vatIncluded}
+            onChange={(e) => setVatIncluded(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-sm text-slate-500">
+            {tr("이 금액에 부가세가 포함되어 있어요")}
+            <span className="mt-0.5 block text-xs text-slate-400">
+              {tr("끄면 결제할 때 10%가 더 붙는 것으로 계산합니다.")}
+            </span>
+          </span>
+        </label>
 
         <div>
           <label className="block text-sm font-medium text-slate-500">{tr("설명")}</label>

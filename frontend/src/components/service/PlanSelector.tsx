@@ -2,6 +2,7 @@ import { Plus, X } from "lucide-react";
 import type { ServicePlan } from "../../types/service";
 import { tr } from "../../i18n/translations";
 import { krwHint, type RateTable } from "../../utils/currency";
+import { formatAmount, withVat } from "../../utils/vat";
 
 interface Props {
   plans: ServicePlan[];
@@ -41,6 +42,11 @@ export default function PlanSelector({
           showKrw && rates
             ? krwHint(plan.price, plan.currency, rates[plan.currency?.toUpperCase()])
             : null;
+        // 카드에는 정가를 그대로 둔다 — 공식 가격표와 숫자가 맞아야 한다.
+        // 부가세가 별도인 요금제만, 실제로 빠지는 금액을 한 줄 덧붙인다.
+        const charged = plan.vat_included === false
+          ? formatAmount(withVat(plan.price, plan.currency, false), plan.currency, tr("원"))
+          : null;
 
         return (
           // 카드가 버튼이라 지우기 버튼을 안에 넣을 수 없다(버튼 중첩). 형제로 띄운다.
@@ -56,6 +62,11 @@ export default function PlanSelector({
                     {tr("직접 입력")}
                   </span>
                 )}
+                {plan.vat_included === false && (
+                  <span className="ml-2 rounded-full bg-slate-500/10 px-2 py-0.5 text-xs font-medium text-slate-500">
+                    {tr("부가세 별도")}
+                  </span>
+                )}
               </p>
               <p className="mt-2 text-2xl font-bold text-blue-600">
                 {isUsd && "$"}
@@ -65,6 +76,11 @@ export default function PlanSelector({
                   {cycleLabels()[plan.billing_cycle]}
                 </span>
               </p>
+              {charged && (
+                <p className="mt-0.5 text-sm text-slate-500">
+                  {tr("부가세 포함 {amount}", { amount: charged })}
+                </p>
+              )}
               {krw && <p className="mt-0.5 text-sm text-slate-500">{krw}</p>}
               {plan.description && (
                 <p className="mt-1 text-xs text-slate-400">{plan.description}</p>

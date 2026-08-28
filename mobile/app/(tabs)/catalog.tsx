@@ -69,6 +69,8 @@ interface Plan {
   billingCycle: string;   // MONTHLY | YEARLY | WEEKLY | QUARTERLY
   /** 내가 직접 넣은 요금제인지. 기본 카탈로그 요금제는 지울 수 없다. */
   isCustom: boolean;
+  /** 이 가격에 부가세가 들어 있는지. 국내 소비자가는 포함, 해외 웹 결제는 별도. */
+  vatIncluded: boolean;
 }
 
 interface Service {
@@ -112,8 +114,17 @@ function toService(raw: CatalogService): Service {
       currency: p.currency,
       billingCycle: String(p.billing_cycle ?? 'MONTHLY').toUpperCase(),
       isCustom: p.is_custom ?? false,
+      vatIncluded: p.vat_included ?? true,
     })),
   };
+}
+
+/** 부가세 별도 요금제의 실제 결제액. 서버도 같은 계산을 한다(app/utils/vat.py).
+ *  해외 웹 결제는 청구서에 10%가 더 붙는다($20짜리가 $22로 빠진다). */
+function withVat(plan: Plan): number {
+  if (plan.vatIncluded) return plan.price;
+  const raw = plan.price * 1.1;
+  return plan.currency === 'KRW' ? Math.round(raw) : Math.round(raw * 100) / 100;
 }
 
 /** 금액 하나를 통화에 맞춰 적는다. 원화는 소수점 없이, 외화는 둘째 자리까지. */
@@ -231,6 +242,8 @@ export default function CatalogScreen() {
   const [newPlanPrice, setNewPlanPrice] = useState('');
   const [newPlanCurrency, setNewPlanCurrency] = useState('KRW');
   const [newPlanCycle, setNewPlanCycle] = useState('monthly');
+  // 사람이 직접 넣는 금액은 대개 청구서에 찍힌 실결제액이라 포함가로 본다
+  const [newPlanVatIncluded, setNewPlanVatIncluded] = useState(true);
   const [savingPlan, setSavingPlan] = useState(false);
 
   // 캘린더 데이터
@@ -451,6 +464,7 @@ export default function CatalogScreen() {
     setNewPlanPrice('');
     setNewPlanCurrency('KRW');
     setNewPlanCycle('monthly');
+    setNewPlanVatIncluded(true);
     setSavingPlan(false);
   };
 
@@ -466,6 +480,7 @@ export default function CatalogScreen() {
         price: Number(newPlanPrice),
         currency: newPlanCurrency,
         billing_cycle: newPlanCycle,
+        vat_included: newPlanVatIncluded,
       });
       const plan: Plan = {
         id: res.data.id,
@@ -474,6 +489,7 @@ export default function CatalogScreen() {
         currency: res.data.currency,
         billingCycle: String(res.data.billing_cycle ?? 'MONTHLY').toUpperCase(),
         isCustom: true,
+        vatIncluded: res.data.vat_included ?? true,
       };
       // 열려 있는 시트에 바로 얹고 고른 상태로 둔다. 목록도 다시 읽어
       // 카드의 가격 범위를 맞춘다.
@@ -824,7 +840,14 @@ export default function CatalogScreen() {
                         <View style={[styles.modalPlanRadio, isSelected && styles.modalPlanRadioActive]}>
                           {isSelected && <View style={styles.modalPlanRadioDot} />}
                         </View>
-                        <Text style={[styles.modalPlanName, isSelected && { color: Colors.primary }]}>{plan.name}</Text>
+                        <View style={styles.modalPlanTexts}>
+                          <Text style={[styles.modalPlanName, isSelected && { color: Colors.primary }]}>{plan.name}</Text>
+                          {!plan.vatIncluded && (
+                            <Text style={styles.modalPlanVat}>
+                              {language === 'ko' ? '부가세 별도' : '+VAT'}
+                            </Text>
+                          )}
+                        </View>
                         <Text style={[styles.modalPlanPrice, isSelected && { color: Colors.primary }]}>
                           {formatPlanPrice(plan, showKrw, rates, language)}
                         </Text>
@@ -903,6 +926,23 @@ export default function CatalogScreen() {
                           </TouchableOpacity>
                         ))}
                       </View>
+                      <TouchableOpacity
+                        style={styles.modalPlanVatToggle}
+                        onPress={() => setNewPlanVatIncluded((v) => !v)}
+                        activeOpacity={0.6}
+                      >
+                        <Ionicons
+                          name={newPlanVatIncluded ? 'checkbox' : 'square-outline'}
+                          size={18}
+                          color={newPlanVatIncluded ? Colors.primary : Colors.textTertiary}
+                        />
+                        <Text style={styles.modalPlanVatToggleText}>
+                          {language === 'ko'
+                            ? '이 금액에 부가세가 포함되어 있어요'
+                            : 'This amount already includes VAT'}
+                        </Text>
+                      </TouchableOpacity>
+
                       <View style={styles.modalPlanFormButtons}>
                         <TouchableOpacity style={styles.modalPlanFormCancel} onPress={resetPlanForm}>
                           <Text style={styles.modalPlanFormCancelText}>
@@ -927,6 +967,19 @@ export default function CatalogScreen() {
                     </View>
                   )}
                 </View>
+
+                {/* 부가세가 별도인 요금제만 — 정가와 실결제액이 다르니 짚어 준다.
+                    담기면 이 금액이 그대로 구독 금액이 되고 합계에 들어간다. */}
+                {selectedPlan && !selectedPlan.vatIncluded && (
+                  <View style={styles.modalPriceRow}>
+                    <Text style={styles.modalPriceLabel}>
+                      {language === 'ko' ? '실제 결제 금액 (부가세 10% 포함)' : 'Actual charge (incl. 10% VAT)'}
+                    </Text>
+                    <Text style={styles.modalPriceValue}>
+                      {formatMoney(withVat(selectedPlan), selectedPlan.currency)}
+                    </Text>
+                  </View>
+                )}
 
                 {/* 결제 시작일 + 다음 결제일 (한 줄) */}
                 <View style={styles.modalDateRow}>
@@ -1190,7 +1243,11 @@ const styles = StyleSheet.create({
   },
   modalPlanRadioActive: { borderColor: Colors.primary },
   modalPlanRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary },
-  modalPlanName: { flex: 1, fontSize: FontSize.sm, color: Colors.textPrimary, fontWeight: FontWeight.medium },
+  modalPlanTexts: { flex: 1 },
+  modalPlanName: { fontSize: FontSize.sm, color: Colors.textPrimary, fontWeight: FontWeight.medium },
+  modalPlanVat: { fontSize: 10, color: Colors.textTertiary, marginTop: 1 },
+  modalPlanVatToggle: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  modalPlanVatToggleText: { flex: 1, fontSize: FontSize.xs, color: Colors.textSecondary },
   modalPlanPrice: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.textPrimary },
   modalPlanDelete: { marginLeft: Spacing.sm, padding: 2 },
   // 요금제 직접 입력

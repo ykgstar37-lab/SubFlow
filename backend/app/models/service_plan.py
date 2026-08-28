@@ -19,6 +19,11 @@ class ServicePlan(Base):
     billing_cycle: Mapped[BillingCycle] = mapped_column(Enum(BillingCycle), default=BillingCycle.MONTHLY)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # 이 가격에 부가세가 들어 있는지. 국내 소비자가는 총액표시제라 포함가지만,
+    # 해외 웹 결제는 별도라 실제로 10%가 더 빠진다($20짜리가 $22로 청구된다).
+    # 통화로 잘라 낼 수 없다 — 한국 앱스토어 인앱결제가는 USD여도 포함가다.
+    # 그래서 요금제마다 들고 있는다. 구독을 담을 때 이 값으로 실결제액을 만든다.
+    vat_included: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     # 서비스·카테고리와 같은 규칙. NULL = 기본 카탈로그 요금제,
     # 값이 있으면 그 사람이 직접 넣은 요금제라 그 사람에게만 보인다.
     user_id: Mapped[uuid.UUID | None] = mapped_column(

@@ -26,6 +26,9 @@ class ServicePlanResponse(BaseModel):
     is_active: bool
     # 내가 직접 넣은 요금제인지. 지우기 버튼과 "직접 입력" 표시를 이 값으로 가른다.
     is_custom: bool = False
+    # 이 가격에 부가세가 들어 있는지. 별도면 화면에 '+VAT'를 붙이고
+    # 담을 때 10%를 얹는다.
+    vat_included: bool = True
 
     model_config = {"from_attributes": True}
 
@@ -102,6 +105,8 @@ class ServicePlanCreateRequest(BaseModel):
     currency: str = Field(default="KRW", min_length=3, max_length=3)
     billing_cycle: BillingCycle = BillingCycle.MONTHLY
     description: str | None = None
+    # 사람이 직접 넣는 금액은 대개 청구서에 찍힌 실결제액이라 포함가로 본다.
+    vat_included: bool = True
 
 
 class ServiceCreateRequest(BaseModel):

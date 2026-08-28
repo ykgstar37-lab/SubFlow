@@ -1222,6 +1222,19 @@ async def _detach_plan(db: AsyncSession, plan_id: int) -> None:
         await db.delete(row)
 
 
+def _with_vat_default(plan_data: dict) -> dict:
+    """요금제 한 줄에 vat_included 기본값을 채운다.
+
+    국내 소비자가는 총액표시제라 부가세가 들어 있고(KRW), 해외 웹 결제는
+    별도라 청구서에 10%가 더 붙는다. 통화가 기본값을 정하되, 예외는 요금제
+    줄에 "vat_included": True/False를 직접 적어 덮어쓴다 — 한국 앱스토어
+    인앱결제가처럼 외화여도 이미 포함가인 경우가 있다.
+    """
+    filled = dict(plan_data)
+    filled.setdefault("vat_included", filled.get("currency") == "KRW")
+    return filled
+
+
 async def seed_services(db: AsyncSession) -> None:
     # 아래 조회는 전부 기본 카탈로그(user_id IS NULL)로 좁힌다. 이름으로 찾는
     # 구조라 사용자가 만든 동명의 항목을 시드 대상으로 착각하면, 요금제 정리
@@ -1248,7 +1261,7 @@ async def seed_services(db: AsyncSession) -> None:
     for category_name, services in DEFAULT_SERVICES.items():
         category_id = cat_map.get(category_name)
         for svc_data in services:
-            plans_data = svc_data.get("plans", [])
+            plans_data = [_with_vat_default(p) for p in svc_data.get("plans", [])]
 
             if svc_data["name"] in existing_services:
                 # Update existing service fields
@@ -1273,7 +1286,7 @@ async def seed_services(db: AsyncSession) -> None:
                     if key in existing_plans:
                         # Update price/currency/billing_cycle if changed
                         existing_plan = existing_plans[key]
-                        for field in ("price", "currency", "billing_cycle"):
+                        for field in ("price", "currency", "billing_cycle", "vat_included"):
                             if str(getattr(existing_plan, field)) != str(plan_data.get(field)):
                                 setattr(existing_plan, field, plan_data[field])
                                 changed = True

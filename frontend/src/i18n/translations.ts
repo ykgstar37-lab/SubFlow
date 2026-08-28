@@ -460,6 +460,14 @@ const EN: Record<string, string> = {
   "요금제 삭제에 실패했습니다.": "Could not delete the plan.",
   "'{name}' 요금제를 삭제하시겠습니까?": "Delete the plan '{name}'?",
 
+  // ── 부가세 ──
+  "부가세 별도": "+VAT",
+  "부가세 포함 {amount}": "{amount} with VAT",
+  "정가 {price} + 부가세 10%": "{price} list price + 10% VAT",
+  "이 금액에 부가세가 포함되어 있어요": "This amount already includes VAT",
+  "끄면 결제할 때 10%가 더 붙는 것으로 계산합니다.":
+    "Uncheck and we add 10% on top when you subscribe.",
+
   // ── 구독 목록 분류 ──
   "분류 전체": "All groups",
   "이 조건에 맞는 구독이 없습니다.": "No subscriptions match these filters.",

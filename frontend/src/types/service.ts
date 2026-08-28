@@ -12,6 +12,8 @@ export interface ServicePlan {
   is_active: boolean;
   /** 내가 직접 넣은 요금제인지 (기본 카탈로그는 false) */
   is_custom?: boolean;
+  /** 이 가격에 부가세가 들어 있는지. false면 결제 때 10%가 더 붙는다. */
+  vat_included?: boolean;
 }
 
 export interface Service {
@@ -69,6 +71,8 @@ export interface ServicePlanCreateRequest {
   currency: string;
   billing_cycle: BillingCycle;
   description?: string;
+  /** 직접 넣는 금액은 대개 청구서에 찍힌 실결제액이라 기본이 포함가다. */
+  vat_included?: boolean;
 }
 
 export interface ServiceCreateRequest {

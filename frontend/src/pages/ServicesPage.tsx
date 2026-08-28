@@ -16,6 +16,7 @@ import ServiceCreateModal from "../components/catalog/ServiceCreateModal";
 import SubscriptionModal from "../components/subscription/SubscriptionModal";
 import { tr } from "../i18n/translations";
 import { nextBillingDate, todayIso } from "../utils/billingDate";
+import { formatAmount, withVat } from "../utils/vat";
 
 export default function ServicesPage() {
   const navigate = useNavigate();
@@ -162,14 +163,33 @@ export default function ServicesPage() {
                 <p className="font-semibold text-blue-900">
                   {subscribing.plan.name}
                 </p>
+                {/* 담기 화면은 정가가 아니라 실제로 빠지는 금액을 크게 보여준다.
+                    이 값이 그대로 구독 금액으로 저장되고 월 지출 합계에 들어간다. */}
                 <p className="text-2xl font-bold text-blue-700">
-                  {subscribing.plan.currency === "USD" && "$"}
-                  {new Intl.NumberFormat("ko-KR").format(subscribing.plan.price)}
-                  {subscribing.plan.currency === "KRW" && tr("원")}
+                  {formatAmount(
+                    withVat(
+                      subscribing.plan.price,
+                      subscribing.plan.currency,
+                      subscribing.plan.vat_included
+                    ),
+                    subscribing.plan.currency,
+                    tr("원")
+                  )}
                   <span className="text-sm font-normal text-blue-500">
                     /{subscribing.plan.billing_cycle === "monthly" ? tr("월") : subscribing.plan.billing_cycle === "yearly" ? tr("년") : subscribing.plan.billing_cycle}
                   </span>
                 </p>
+                {subscribing.plan.vat_included === false && (
+                  <p className="mt-1 text-xs text-blue-600/80">
+                    {tr("정가 {price} + 부가세 10%", {
+                      price: formatAmount(
+                        subscribing.plan.price,
+                        subscribing.plan.currency,
+                        tr("원")
+                      ),
+                    })}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-500">{tr("구독 시작일")}</label>

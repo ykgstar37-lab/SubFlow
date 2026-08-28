@@ -135,6 +135,8 @@ export const servicesAPI = {
       currency: string;
       billing_cycle: string;
       description?: string;
+      // 직접 넣는 금액은 대개 청구서에 찍힌 실결제액이라 기본이 포함가다
+      vat_included?: boolean;
     },
   ) => api.post(`/services/${serviceId}/plans`, data),
   removePlan: (serviceId: number, planId: number) =>

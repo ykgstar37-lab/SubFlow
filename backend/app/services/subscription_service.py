@@ -15,6 +15,7 @@ from app.models.subscription_history import HistoryEventType, SubscriptionHistor
 from app.schemas.subscription import SubscriptionCreateRequest, SubscriptionFromCatalogRequest, SubscriptionUpdateRequest
 from app.utils.cost import to_monthly_cost_krw
 from app.utils.exchange_rate import get_exchange_rates
+from app.utils.vat import with_vat
 from app.utils.visibility import visible_plans
 
 # 구독 응답에 함께 실을 관계들. 서비스의 요금제 목록은 싣지 않는다 —
@@ -146,7 +147,10 @@ class SubscriptionService:
             plan_id=plan.id,
             service_name=service.name,
             description=f"{service.name} - {plan.name}",
-            cost=plan.price,
+            # 카탈로그 가격이 부가세 별도면 실제 청구액으로 바꿔 담는다.
+            # 여기서 한 번만 계산한다 — 뒤에서 사용자가 금액을 고쳐도
+            # 부가세가 또 붙지 않는다.
+            cost=with_vat(plan.price, plan.currency, plan.vat_included),
             currency=plan.currency,
             billing_cycle=plan.billing_cycle,
             category_id=service.category_id,
@@ -327,6 +331,8 @@ class SubscriptionService:
 
             old_plan_name = subscription.plan.name if subscription.plan else str(subscription.plan_id)
             old_cost = subscription.cost
+            # 담을 때와 같은 기준 — 부가세 별도 요금제면 실결제액으로 바꾼다
+            new_cost = with_vat(new_plan.price, new_plan.currency, new_plan.vat_included)
             await self._record_history(
                 subscription_id=subscription.id,
                 user_id=user_id,
@@ -335,18 +341,18 @@ class SubscriptionService:
                 old_value=old_plan_name,
                 new_value=new_plan.name,
             )
-            if Decimal(str(old_cost)) != Decimal(str(new_plan.price)):
+            if Decimal(str(old_cost)) != new_cost:
                 await self._record_history(
                     subscription_id=subscription.id,
                     user_id=user_id,
                     event_type=HistoryEventType.PRICE_CHANGED,
-                    description=f"{old_cost:,.0f}{subscription.currency} → {new_plan.price:,.0f}{new_plan.currency}",
+                    description=f"{old_cost:,.0f}{subscription.currency} → {new_cost:,.0f}{new_plan.currency}",
                     old_value=str(old_cost),
-                    new_value=str(new_plan.price),
+                    new_value=str(new_cost),
                 )
 
             subscription.plan_id = new_plan.id
-            subscription.cost = new_plan.price
+            subscription.cost = new_cost
             subscription.currency = new_plan.currency
             subscription.billing_cycle = new_plan.billing_cycle
 

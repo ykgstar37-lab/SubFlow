@@ -35,6 +35,7 @@ from app.schemas.analytics import (
 )
 from app.utils.cost import to_monthly_cost, to_monthly_cost_krw
 from app.utils.exchange_rate import get_exchange_rates, to_krw
+from app.utils.vat import with_vat
 from app.utils.visibility import only_visible_plans, visible_plans
 
 
@@ -335,15 +336,19 @@ class AnalyticsService:
                 if not plan.is_active or plan.id == s.plan_id:
                     continue
 
+                # 내 구독 금액은 부가세까지 낸 실결제액이다. 비교 대상도 같은
+                # 기준으로 맞춰야 한다 — 정가로 재면 부가세 별도 요금제가
+                # 실제로는 안 싼데도 10% 싸 보인다.
+                plan_price = with_vat(plan.price, plan.currency, plan.vat_included)
                 plan_monthly_krw = await to_monthly_cost_krw(
-                    Decimal(str(plan.price)), plan.billing_cycle, plan.currency
+                    plan_price, plan.billing_cycle, plan.currency
                 )
 
                 if plan_monthly_krw < current_monthly_krw:
                     cheaper_plans.append(CheaperPlanInfo(
                         plan_id=plan.id,
                         plan_name=plan.name,
-                        price=Decimal(str(plan.price)),
+                        price=plan_price,
                         currency=plan.currency,
                         billing_cycle=plan.billing_cycle.value,
                         monthly_cost_krw=plan_monthly_krw.quantize(Decimal("1")),
@@ -396,29 +401,33 @@ class AnalyticsService:
 
             # 해당 서비스의 모든 플랜 가격 이력 조회
             result = await self.db.execute(
-                select(PlanPriceHistory)
+                select(PlanPriceHistory, ServicePlan.vat_included)
                 .join(ServicePlan)
                 .where(ServicePlan.service_id == sub.service_id, visible_plans(user_id))
                 .order_by(PlanPriceHistory.plan_id, PlanPriceHistory.effective_date)
             )
-            all_history = result.scalars().all()
-            if not all_history:
+            rows = result.all()
+            if not rows:
                 continue
 
-            # plan_id별로 그룹화
+            # plan_id별로 그룹화. 부가세 포함 여부도 함께 들고 있는다 — 구독
+            # 금액은 실결제액이라 이력 가격을 같은 기준으로 올려야 매칭된다.
             plan_histories: dict[int, list[PlanPriceHistory]] = {}
-            for h in all_history:
+            plan_vat: dict[int, bool] = {}
+            for h, vat_included in rows:
                 plan_histories.setdefault(h.plan_id, []).append(h)
+                plan_vat[h.plan_id] = vat_included
 
             # 사용자의 구독 비용과 가장 가까운 플랜을 매칭
             user_cost = Decimal(str(sub.cost))
             best_plan_id = None
             best_diff = None
             for plan_id, history in plan_histories.items():
-                latest_price = Decimal(str(history[-1].price))
+                included = plan_vat.get(plan_id, True)
+                latest_price = with_vat(history[-1].price, history[-1].currency, included)
                 # 현재 가격 또는 과거 가격 중 사용자 비용과 매칭되는 것
                 for h in history:
-                    if Decimal(str(h.price)) == user_cost:
+                    if with_vat(h.price, h.currency, included) == user_cost:
                         best_plan_id = plan_id
                         best_diff = Decimal("0")
                         break

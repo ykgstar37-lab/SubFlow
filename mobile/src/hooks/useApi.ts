@@ -83,6 +83,8 @@ export interface CatalogPlan {
   billing_cycle: string;
   /** 내가 직접 넣은 요금제인지 (기본 카탈로그는 false) */
   is_custom?: boolean;
+  /** 이 가격에 부가세가 들어 있는지. false면 결제 때 10%가 더 붙는다. */
+  vat_included?: boolean;
 }
 
 export interface CatalogService {
