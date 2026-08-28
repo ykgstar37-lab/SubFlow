@@ -71,8 +71,10 @@ def render_email(
 
     footer_html = ""
     if footer:
+        # 구분선은 두지 않는다. 버튼 바로 아래에 선이 깔리면 버튼을 가로지르는
+        # 것처럼 보인다. 여백만으로 충분히 나뉜다.
         footer_html = (
-            f'<tr><td style="padding-top:22px;border-top:1px solid {LINE};'
+            f'<tr><td style="padding-top:22px;'
             f'font-size:12px;line-height:18px;color:{MUTED};">{escape(footer)}</td></tr>'
         )
 
