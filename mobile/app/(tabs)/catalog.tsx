@@ -67,6 +67,8 @@ interface Plan {
   price: number;
   currency: string;
   billingCycle: string;   // MONTHLY | YEARLY | WEEKLY | QUARTERLY
+  /** 내가 직접 넣은 요금제인지. 기본 카탈로그 요금제는 지울 수 없다. */
+  isCustom: boolean;
 }
 
 interface Service {
@@ -109,6 +111,7 @@ function toService(raw: CatalogService): Service {
       price: Number(p.price),
       currency: p.currency,
       billingCycle: String(p.billing_cycle ?? 'MONTHLY').toUpperCase(),
+      isCustom: p.is_custom ?? false,
     })),
   };
 }
@@ -121,6 +124,14 @@ function formatMoney(amount: number, currency: string): string {
     : Number(amount.toFixed(2)).toLocaleString(undefined, { maximumFractionDigits: 2 });
   return `${symbol}${n}`;
 }
+
+const PLAN_CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY'];
+const PLAN_CYCLES: { value: string; ko: string; en: string }[] = [
+  { value: 'monthly', ko: '월간', en: 'Monthly' },
+  { value: 'yearly', ko: '연간', en: 'Yearly' },
+  { value: 'weekly', ko: '주간', en: 'Weekly' },
+  { value: 'quarterly', ko: '분기', en: 'Quarterly' },
+];
 
 const CYCLE_SUFFIX: Record<string, { ko: string; en: string }> = {
   MONTHLY: { ko: '/월', en: '/mo' },
@@ -214,6 +225,14 @@ export default function CatalogScreen() {
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // 요금제 직접 입력 — 카탈로그가 실제 요금제를 다 담지 못해서 둔 칸
+  const [planFormOpen, setPlanFormOpen] = useState(false);
+  const [newPlanName, setNewPlanName] = useState('');
+  const [newPlanPrice, setNewPlanPrice] = useState('');
+  const [newPlanCurrency, setNewPlanCurrency] = useState('KRW');
+  const [newPlanCycle, setNewPlanCycle] = useState('monthly');
+  const [savingPlan, setSavingPlan] = useState(false);
+
   // 캘린더 데이터
   const calDaysInMonth = getDaysInMonth(calYear, calMonth);
   const calFirstDay = getFirstDayOfMonth(calYear, calMonth);
@@ -237,6 +256,7 @@ export default function CatalogScreen() {
     setSelectedPlan(null);
     setActivePickerField(null);
     setIsSubmitting(false);
+    resetPlanForm();
     // 기본 시작일: 오늘
     const today = new Date();
     setStartDate(today.toISOString().split('T')[0]);
@@ -423,6 +443,86 @@ export default function CatalogScreen() {
     const key = `category.${name}`;
     const label = t(key as any);
     return label === key ? name : label;
+  };
+
+  const resetPlanForm = () => {
+    setPlanFormOpen(false);
+    setNewPlanName('');
+    setNewPlanPrice('');
+    setNewPlanCurrency('KRW');
+    setNewPlanCycle('monthly');
+    setSavingPlan(false);
+  };
+
+  const handleAddPlan = async () => {
+    if (!selectedService) return;
+    const name = newPlanName.trim();
+    if (!name || !newPlanPrice.trim()) return;
+
+    setSavingPlan(true);
+    try {
+      const res = await servicesAPI.createPlan(selectedService.id, {
+        name,
+        price: Number(newPlanPrice),
+        currency: newPlanCurrency,
+        billing_cycle: newPlanCycle,
+      });
+      const plan: Plan = {
+        id: res.data.id,
+        name: res.data.name,
+        price: Number(res.data.price),
+        currency: res.data.currency,
+        billingCycle: String(res.data.billing_cycle ?? 'MONTHLY').toUpperCase(),
+        isCustom: true,
+      };
+      // 열려 있는 시트에 바로 얹고 고른 상태로 둔다. 목록도 다시 읽어
+      // 카드의 가격 범위를 맞춘다.
+      setSelectedService({ ...selectedService, plans: [...selectedService.plans, plan] });
+      setSelectedPlan(plan);
+      resetPlanForm();
+      refetch();
+    } catch (e: any) {
+      Alert.alert(
+        language === 'ko' ? '오류' : 'Error',
+        e?.response?.status === 400
+          ? (language === 'ko' ? '같은 이름의 요금제가 이미 있습니다.' : 'A plan with that name already exists.')
+          : (language === 'ko' ? '요금제를 추가하지 못했습니다.' : 'Could not add the plan.'),
+      );
+      setSavingPlan(false);
+    }
+  };
+
+  const handleDeletePlan = (plan: Plan) => {
+    if (!selectedService) return;
+    Alert.alert(
+      language === 'ko' ? '요금제 삭제' : 'Delete plan',
+      language === 'ko'
+        ? `'${plan.name}'을(를) 삭제할까요? 이미 등록한 구독은 그대로 남습니다.`
+        : `Delete '${plan.name}'? Subscriptions you already added stay as they are.`,
+      [
+        { text: language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
+        {
+          text: language === 'ko' ? '삭제' : 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await servicesAPI.removePlan(selectedService.id, plan.id);
+              setSelectedService({
+                ...selectedService,
+                plans: selectedService.plans.filter((p) => p.id !== plan.id),
+              });
+              setSelectedPlan((cur) => (cur?.id === plan.id ? null : cur));
+              refetch();
+            } catch {
+              Alert.alert(
+                language === 'ko' ? '오류' : 'Error',
+                language === 'ko' ? '삭제하지 못했습니다.' : 'Could not delete.',
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleDeleteService = (service: Service) => {
@@ -683,57 +783,150 @@ export default function CatalogScreen() {
                   </View>
                 </View>
 
-                {/* 요금제 선택 */}
-                {selectedService.plans && selectedService.plans.length > 0 && (
-                  <View style={styles.modalPlansSection}>
-                    <View style={styles.modalPlansHeader}>
-                      <Text style={styles.modalSectionTitle}>
-                        {language === 'ko' ? '요금제 선택' : 'Select Plan'}
-                      </Text>
-                      {/* 외화 요금제일 때만 환산 버튼을 띄운다 — 여기서 결정하니까 여기 둔다 */}
-                      {selectedService.plans.some((p) => p.currency !== 'KRW') && (
-                        <TouchableOpacity
-                          style={[styles.krwToggle, showKrw && styles.krwToggleActive]}
-                          onPress={toggleKrw}
-                          activeOpacity={0.7}
-                        >
-                          <Ionicons
-                            name="swap-horizontal"
-                            size={13}
-                            color={showKrw ? Colors.textWhite : Colors.textSecondary}
-                          />
-                          <Text style={[styles.krwToggleText, showKrw && styles.krwToggleTextActive]}>
-                            {showKrw ? (language === 'ko' ? '원화' : 'KRW') : (language === 'ko' ? '원화로' : 'To KRW')}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    {showKrw && ratesAsOf && (
-                      <Text style={styles.ratesNoteModal}>
-                        {language === 'ko' ? `${ratesAsOf} 고시 환율 기준` : `At ${ratesAsOf} reference rate`}
-                      </Text>
+                {/* 요금제 선택 — 요금제가 하나도 없어도 직접 넣을 칸은 띄운다 */}
+                <View style={styles.modalPlansSection}>
+                  <View style={styles.modalPlansHeader}>
+                    <Text style={styles.modalSectionTitle}>
+                      {language === 'ko' ? '요금제 선택' : 'Select Plan'}
+                    </Text>
+                    {/* 외화 요금제일 때만 환산 버튼을 띄운다 — 여기서 결정하니까 여기 둔다 */}
+                    {selectedService.plans.some((p) => p.currency !== 'KRW') && (
+                      <TouchableOpacity
+                        style={[styles.krwToggle, showKrw && styles.krwToggleActive]}
+                        onPress={toggleKrw}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name="swap-horizontal"
+                          size={13}
+                          color={showKrw ? Colors.textWhite : Colors.textSecondary}
+                        />
+                        <Text style={[styles.krwToggleText, showKrw && styles.krwToggleTextActive]}>
+                          {showKrw ? (language === 'ko' ? '원화' : 'KRW') : (language === 'ko' ? '원화로' : 'To KRW')}
+                        </Text>
+                      </TouchableOpacity>
                     )}
-                    {selectedService.plans.map((plan, i) => {
-                      const isSelected = selectedPlan?.name === plan.name;
-                      return (
-                        <TouchableOpacity
-                          key={i}
-                          style={[styles.modalPlanRow, isSelected && styles.modalPlanRowActive]}
-                          onPress={() => setSelectedPlan(plan)}
-                          activeOpacity={0.6}
-                        >
-                          <View style={[styles.modalPlanRadio, isSelected && styles.modalPlanRadioActive]}>
-                            {isSelected && <View style={styles.modalPlanRadioDot} />}
-                          </View>
-                          <Text style={[styles.modalPlanName, isSelected && { color: Colors.primary }]}>{plan.name}</Text>
-                          <Text style={[styles.modalPlanPrice, isSelected && { color: Colors.primary }]}>
-                            {formatPlanPrice(plan, showKrw, rates, language)}
+                  </View>
+                  {showKrw && ratesAsOf && (
+                    <Text style={styles.ratesNoteModal}>
+                      {language === 'ko' ? `${ratesAsOf} 고시 환율 기준` : `At ${ratesAsOf} reference rate`}
+                    </Text>
+                  )}
+                  {selectedService.plans.map((plan) => {
+                    const isSelected = selectedPlan?.id === plan.id;
+                    return (
+                      <TouchableOpacity
+                        key={plan.id}
+                        style={[styles.modalPlanRow, isSelected && styles.modalPlanRowActive]}
+                        onPress={() => setSelectedPlan(plan)}
+                        activeOpacity={0.6}
+                      >
+                        <View style={[styles.modalPlanRadio, isSelected && styles.modalPlanRadioActive]}>
+                          {isSelected && <View style={styles.modalPlanRadioDot} />}
+                        </View>
+                        <Text style={[styles.modalPlanName, isSelected && { color: Colors.primary }]}>{plan.name}</Text>
+                        <Text style={[styles.modalPlanPrice, isSelected && { color: Colors.primary }]}>
+                          {formatPlanPrice(plan, showKrw, rates, language)}
+                        </Text>
+                        {plan.isCustom && (
+                          <TouchableOpacity
+                            style={styles.modalPlanDelete}
+                            onPress={() => handleDeletePlan(plan)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Ionicons name="close" size={16} color={Colors.textTertiary} />
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+
+                  {/* 요금제 직접 입력 — 카탈로그가 실제 요금제를 다 담지 못한다
+                      (특가·기간제 이용권처럼 수시로 바뀌는 것) */}
+                  {!planFormOpen ? (
+                    <TouchableOpacity
+                      style={styles.modalPlanAddRow}
+                      onPress={() => setPlanFormOpen(true)}
+                      activeOpacity={0.6}
+                    >
+                      <Ionicons name="add" size={16} color={Colors.primary} />
+                      <Text style={styles.modalPlanAddText}>
+                        {language === 'ko' ? '요금제 직접 입력' : 'Add a plan'}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.modalPlanForm}>
+                      <Text style={styles.modalPlanFormHint}>
+                        {language === 'ko'
+                          ? '목록에 없는 요금제를 넣습니다. 나에게만 보입니다.'
+                          : 'Add a plan that is not listed. Only you can see it.'}
+                      </Text>
+                      <TextInput
+                        style={styles.modalPlanInput}
+                        value={newPlanName}
+                        onChangeText={setNewPlanName}
+                        maxLength={100}
+                        placeholder={language === 'ko' ? '요금제 이름' : 'Plan name'}
+                        placeholderTextColor={Colors.textTertiary}
+                      />
+                      <TextInput
+                        style={styles.modalPlanInput}
+                        value={newPlanPrice}
+                        onChangeText={setNewPlanPrice}
+                        keyboardType="number-pad"
+                        placeholder={language === 'ko' ? '금액' : 'Amount'}
+                        placeholderTextColor={Colors.textTertiary}
+                      />
+                      <View style={styles.modalPlanChipRow}>
+                        {PLAN_CURRENCIES.map((c) => (
+                          <TouchableOpacity
+                            key={c}
+                            style={[styles.modalPlanChip, newPlanCurrency === c && styles.modalPlanChipActive]}
+                            onPress={() => setNewPlanCurrency(c)}
+                          >
+                            <Text style={[styles.modalPlanChipText, newPlanCurrency === c && styles.modalPlanChipTextActive]}>
+                              {c}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <View style={styles.modalPlanChipRow}>
+                        {PLAN_CYCLES.map((c) => (
+                          <TouchableOpacity
+                            key={c.value}
+                            style={[styles.modalPlanChip, newPlanCycle === c.value && styles.modalPlanChipActive]}
+                            onPress={() => setNewPlanCycle(c.value)}
+                          >
+                            <Text style={[styles.modalPlanChipText, newPlanCycle === c.value && styles.modalPlanChipTextActive]}>
+                              {language === 'ko' ? c.ko : c.en}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                      <View style={styles.modalPlanFormButtons}>
+                        <TouchableOpacity style={styles.modalPlanFormCancel} onPress={resetPlanForm}>
+                          <Text style={styles.modalPlanFormCancelText}>
+                            {language === 'ko' ? '취소' : 'Cancel'}
                           </Text>
                         </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
+                        <TouchableOpacity
+                          style={[
+                            styles.modalPlanFormSave,
+                            (savingPlan || !newPlanName.trim() || !newPlanPrice.trim()) && styles.modalPlanFormSaveDisabled,
+                          ]}
+                          onPress={handleAddPlan}
+                          disabled={savingPlan || !newPlanName.trim() || !newPlanPrice.trim()}
+                        >
+                          <Text style={styles.modalPlanFormSaveText}>
+                            {savingPlan
+                              ? (language === 'ko' ? '저장 중...' : 'Saving...')
+                              : (language === 'ko' ? '추가' : 'Add')}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
 
                 {/* 결제 시작일 + 다음 결제일 (한 줄) */}
                 <View style={styles.modalDateRow}>
@@ -999,6 +1192,41 @@ const styles = StyleSheet.create({
   modalPlanRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.primary },
   modalPlanName: { flex: 1, fontSize: FontSize.sm, color: Colors.textPrimary, fontWeight: FontWeight.medium },
   modalPlanPrice: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.textPrimary },
+  modalPlanDelete: { marginLeft: Spacing.sm, padding: 2 },
+  // 요금제 직접 입력
+  modalPlanAddRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 12, borderRadius: 12, marginTop: 4,
+    borderWidth: 1, borderStyle: 'dashed', borderColor: Colors.border,
+  },
+  modalPlanAddText: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.primary },
+  modalPlanForm: {
+    marginTop: 4, padding: 12, borderRadius: 12, gap: Spacing.sm,
+    backgroundColor: Colors.surfaceLight,
+  },
+  modalPlanFormHint: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  modalPlanInput: {
+    backgroundColor: Colors.background, borderWidth: 1, borderColor: Colors.border,
+    borderRadius: BorderRadius.md, paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: FontSize.sm, color: Colors.textPrimary,
+  },
+  modalPlanChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  modalPlanChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+    borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.background,
+  },
+  modalPlanChipActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  modalPlanChipText: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  modalPlanChipTextActive: { color: Colors.primary, fontWeight: FontWeight.semibold },
+  modalPlanFormButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.sm },
+  modalPlanFormCancel: { paddingHorizontal: 14, paddingVertical: 8 },
+  modalPlanFormCancelText: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  modalPlanFormSave: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: BorderRadius.md,
+    backgroundColor: Colors.primary,
+  },
+  modalPlanFormSaveDisabled: { opacity: 0.5 },
+  modalPlanFormSaveText: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.textWhite },
   // 날짜 선택
   modalDateRow: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.md },
   modalDateCol: { flex: 1 },

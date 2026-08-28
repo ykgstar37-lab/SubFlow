@@ -10,6 +10,8 @@ export interface ServicePlan {
   billing_cycle: BillingCycle;
   description?: string;
   is_active: boolean;
+  /** 내가 직접 넣은 요금제인지 (기본 카탈로그는 false) */
+  is_custom?: boolean;
 }
 
 export interface Service {
@@ -29,6 +31,13 @@ export interface Service {
   /** 검색 보조어 (한글/영문 표기 차이) */
   aliases?: string[];
 }
+
+/**
+ * 구독에 딸려 오는 서비스 정보. 요금제 목록은 오지 않는다 —
+ * 요금제는 사람마다 보이는 목록이 다르고(직접 넣은 요금제), 구독 화면은
+ * 쓰지도 않아서 서버가 빼고 보낸다. 요금제가 필요하면 서비스 API를 부른다.
+ */
+export type ServiceBrief = Omit<Service, "plans" | "aliases">;
 
 export interface PlanPriceHistory {
   price: number;

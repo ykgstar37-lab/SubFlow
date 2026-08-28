@@ -445,6 +445,21 @@ const EN: Record<string, string> = {
   "서비스 삭제에 실패했습니다.": "Could not delete the service.",
   "'{name}' 서비스를 삭제하시겠습니까?": "Delete the service '{name}'?",
 
+  // ── 요금제 직접 입력 ──
+  "요금제 직접 입력": "Add a plan",
+  "목록에 없는 요금제를 직접 넣습니다. 추가한 요금제는 나에게만 보입니다.":
+    "Add a plan that is not in the list. Plans you add are visible only to you.",
+  "요금제 이름 *": "Plan name *",
+  "금액 *": "Amount *",
+  "예: 모바일 30회 이용권": "e.g. 30-play mobile pass",
+  "요금제를 추가했습니다.": "Plan added.",
+  "요금제를 삭제했습니다.": "Plan deleted.",
+  "같은 이름의 요금제가 이미 있습니다.": "A plan with that name already exists.",
+  "요금제 추가에 실패했습니다.": "Could not add the plan.",
+  "요금제 삭제": "Delete plan",
+  "요금제 삭제에 실패했습니다.": "Could not delete the plan.",
+  "'{name}' 요금제를 삭제하시겠습니까?": "Delete the plan '{name}'?",
+
   // ── 구독 목록 분류 ──
   "분류 전체": "All groups",
   "이 조건에 맞는 구독이 없습니다.": "No subscriptions match these filters.",

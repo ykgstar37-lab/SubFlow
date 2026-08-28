@@ -81,6 +81,8 @@ export interface CatalogPlan {
   price: number | string;      // Decimal이 문자열로 넘어오는 경우가 있어 둘 다 받는다
   currency: string;
   billing_cycle: string;
+  /** 내가 직접 넣은 요금제인지 (기본 카탈로그는 false) */
+  is_custom?: boolean;
 }
 
 export interface CatalogService {

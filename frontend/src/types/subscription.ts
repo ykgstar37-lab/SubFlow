@@ -1,5 +1,5 @@
 import type { Category } from "./category";
-import type { Service, ServicePlan } from "./service";
+import type { ServiceBrief, ServicePlan } from "./service";
 
 export type BillingCycle = "monthly" | "yearly" | "weekly" | "quarterly";
 export type SubscriptionStatus = "active" | "paused" | "cancelled" | "trial";
@@ -23,7 +23,7 @@ export interface Subscription {
   category?: Category;
   service_id?: number;
   plan_id?: number;
-  service?: Service;
+  service?: ServiceBrief;
   plan?: ServicePlan;
   logo_url?: string;
   notes?: string;

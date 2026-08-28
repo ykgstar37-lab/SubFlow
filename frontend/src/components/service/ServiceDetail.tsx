@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CreditCard } from "lucide-react";
+import toast from "react-hot-toast";
 import { serviceApi } from "../../api/services";
 import type { Service, ServicePlan } from "../../types/service";
+import PlanCreateModal from "./PlanCreateModal";
 import PlanSelector from "./PlanSelector";
 import { tr } from "../../i18n/translations";
 import type { RateTable } from "../../utils/currency";
@@ -19,18 +21,32 @@ export default function ServiceDetail({ serviceId, onSubscribe, onBack, showKrw,
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      setService(await serviceApi.getById(serviceId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : tr("서비스 정보를 불러오는데 실패했습니다."));
+    }
+  }, [serviceId]);
 
   useEffect(() => {
     setLoading(true);
-    setError(null);
-    serviceApi
-      .getById(serviceId)
-      .then(setService)
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : tr("서비스 정보를 불러오는데 실패했습니다."));
-      })
-      .finally(() => setLoading(false));
-  }, [serviceId]);
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  const handleDeletePlan = async (plan: ServicePlan) => {
+    if (!window.confirm(tr("'{name}' 요금제를 삭제하시겠습니까?", { name: plan.name }))) return;
+    try {
+      await serviceApi.removePlan(serviceId, plan.id);
+      toast.success(tr("요금제를 삭제했습니다."));
+      await load();
+    } catch {
+      toast.error(tr("요금제 삭제에 실패했습니다."));
+    }
+  };
 
   if (loading) {
     return (
@@ -100,9 +116,25 @@ export default function ServiceDetail({ serviceId, onSubscribe, onBack, showKrw,
             onSelect={(plan) => onSubscribe(service.id, plan)}
             showKrw={showKrw}
             rates={rates}
+            onAdd={() => setPlanModalOpen(true)}
+            onDelete={handleDeletePlan}
           />
         </div>
       </div>
+
+      <PlanCreateModal
+        isOpen={planModalOpen}
+        onClose={() => setPlanModalOpen(false)}
+        serviceId={service.id}
+        serviceName={service.name}
+        onCreated={(plan) => {
+          // 넣자마자 구독 등록으로 이어지게 한다 — 요금제만 만들고 끝낼 일은 없다.
+          // 목록도 다시 읽어 둔다. 구독 등록을 취소하고 돌아와도 방금 넣은
+          // 요금제가 보여야 한다.
+          void load();
+          onSubscribe(service.id, plan);
+        }}
+      />
     </div>
   );
 }

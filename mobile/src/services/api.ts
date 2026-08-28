@@ -126,6 +126,19 @@ export const servicesAPI = {
     plans?: { name: string; price: number; currency: string; billing_cycle: string }[];
   }) => api.post('/services', data),
   remove: (id: number) => api.delete(`/services/${id}`),
+  // 카탈로그에 없는 요금제를 직접 넣는다. 넣은 사람에게만 보인다.
+  createPlan: (
+    serviceId: number,
+    data: {
+      name: string;
+      price: number;
+      currency: string;
+      billing_cycle: string;
+      description?: string;
+    },
+  ) => api.post(`/services/${serviceId}/plans`, data),
+  removePlan: (serviceId: number, planId: number) =>
+    api.delete(`/services/${serviceId}/plans/${planId}`),
 };
 
 // ── Categories ──
