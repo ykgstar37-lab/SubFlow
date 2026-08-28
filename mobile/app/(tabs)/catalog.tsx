@@ -47,6 +47,7 @@ interface Category {
 const DEFAULT_CATEGORY_STYLE: Record<string, { icon: Category['icon']; color: string }> = {
   Entertainment: { icon: 'tv', color: '#E50914' },
   Music: { icon: 'musical-notes', color: '#1DB954' },
+  'Photo & Video': { icon: 'camera', color: '#E1306C' },
   'Developer Tools': { icon: 'code-slash', color: '#24292E' },
   'Cloud/Infrastructure': { icon: 'cloud', color: '#FF9900' },
   Productivity: { icon: 'briefcase', color: '#D83B01' },

@@ -159,6 +159,7 @@ const translations = {
   // ── Categories ──
   'category.Entertainment': { en: 'Entertainment', ko: '엔터테인먼트' },
   'category.Music': { en: 'Music', ko: '음악' },
+  'category.Photo & Video': { en: 'Photo & Video', ko: '사진/영상' },
   'category.Developer Tools': { en: 'Developer Tools', ko: '개발 도구' },
   'category.Cloud/Infrastructure': { en: 'Cloud/Infrastructure', ko: '클라우드/인프라' },
   'category.Productivity': { en: 'Productivity', ko: '생산성' },

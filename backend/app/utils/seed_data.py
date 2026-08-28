@@ -12,6 +12,7 @@ from app.models.subscription import Subscription
 DEFAULT_CATEGORIES = [
     {"name": "Entertainment", "icon": "🎬", "color": "#E50914", "is_default": True},
     {"name": "Music", "icon": "🎵", "color": "#1DB954", "is_default": True},
+    {"name": "Photo & Video", "icon": "📸", "color": "#E1306C", "is_default": True},
     {"name": "Developer Tools", "icon": "💻", "color": "#6E40C9", "is_default": True},
     {"name": "Cloud/Infrastructure", "icon": "☁️", "color": "#FF9900", "is_default": True},
     {"name": "Productivity", "icon": "📋", "color": "#4285F4", "is_default": True},
@@ -262,6 +263,79 @@ DEFAULT_SERVICES = {
             "plans": [
                 {"name": "HiFi", "price": 10.99, "currency": "USD", "billing_cycle": "MONTHLY"},
                 {"name": "HiFi Plus", "price": 19.99, "currency": "USD", "billing_cycle": "MONTHLY"},
+            ],
+        },
+    ],
+    # 사진·영상 편집. Adobe CC와 Canva는 Productivity에 있지만, 캡컷·스노우처럼
+    # 편집 자체가 목적인 앱들은 성격이 달라 따로 묶는다.
+    "Photo & Video": [
+        {
+            "name": "CapCut Pro",
+            "description": "숏폼 영상 편집기. 프로 전용 효과와 100GB 클라우드",
+            "website_url": "https://www.capcut.com/ko-kr",
+            "is_popular": True,
+            "plans": [
+                {"name": "월간", "price": 19800, "currency": "KRW", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "SNOW VIP",
+            "description": "AI 프로필과 보정 필터를 무제한으로 쓰는 카메라 앱 구독",
+            "website_url": "https://snow.me",
+            "is_popular": True,
+            "plans": [
+                # 통신사 제휴가(유독 4,000원 등)나 선물하기가는 더 싸다. 여기는 정가.
+                {"name": "VIP", "price": 11900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "KineMaster Premium",
+            "description": "모바일 영상 편집기. 워터마크 제거와 프리미엄 에셋",
+            "website_url": "https://www.kinemaster.com/ko",
+            "is_popular": False,
+            "plans": [
+                {"name": "월간", "price": 8900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "연간", "price": 59000, "currency": "KRW", "billing_cycle": "YEARLY"},
+            ],
+        },
+        {
+            "name": "Vrew",
+            "description": "AI 자막·편집 도구. 음성 인식으로 영상을 글처럼 자른다",
+            "website_url": "https://vrew.ai/ko",
+            "cancel_url": "https://vrew.ai/ko/my",
+            "is_popular": False,
+            "plans": [
+                # 2026-04 통합 크레딧제로 개편됐다. Light 기준가만 싣는다.
+                {"name": "Light", "price": 14900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "Adobe Lightroom",
+            "description": "사진 보정·관리. 1TB 클라우드 포함 단일 앱 플랜",
+            "website_url": "https://www.adobe.com/kr/products/photoshop-lightroom.html",
+            "cancel_url": "https://account.adobe.com/plans",
+            "is_popular": True,
+            "plans": [
+                {"name": "Lightroom (1TB)", "price": 13200, "currency": "KRW", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "Picsart Pro",
+            "description": "사진·영상 편집과 AI 생성 도구를 함께 쓰는 구독",
+            "website_url": "https://picsart.com",
+            "is_popular": False,
+            "plans": [
+                {"name": "Pro", "price": 20, "currency": "USD", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "VSCO",
+            "description": "필름 감성 프리셋과 사진 편집 도구. 연 단위 멤버십",
+            "website_url": "https://vsco.co",
+            "is_popular": False,
+            "plans": [
+                {"name": "Plus", "price": 29.99, "currency": "USD", "billing_cycle": "YEARLY"},
+                {"name": "Pro", "price": 59.99, "currency": "USD", "billing_cycle": "YEARLY"},
             ],
         },
     ],
@@ -1080,10 +1154,13 @@ async def seed_categories(db: AsyncSession) -> None:
 
 async def _update_logo_urls(db: AsyncSession) -> None:
     """Update existing services' and subscriptions' logo_url to use local SVG files."""
+    # 로고 파일이 없는 서비스도 있다(브랜드 이미지를 못 넣은 것들). 화면에는
+    # 이름 첫 글자로 대신 그려지므로, 여기서는 있는 것만 모은다.
     logo_map: dict[str, str] = {}
     for services in DEFAULT_SERVICES.values():
         for svc in services:
-            logo_map[svc["name"]] = svc["logo_url"]
+            if svc.get("logo_url"):
+                logo_map[svc["name"]] = svc["logo_url"]
 
     # Update services table
     result = await db.execute(select(Service).where(Service.user_id.is_(None)))
