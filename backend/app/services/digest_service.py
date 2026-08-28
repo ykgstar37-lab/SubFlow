@@ -6,6 +6,7 @@ from app.models.notification_setting import NotificationSetting
 from app.models.subscription import Subscription, SubscriptionStatus
 from app.models.user import User
 from app.services.delivery_service import send_email, send_expo_push
+from app.services.email_template import render_email
 
 
 async def _top_news_headline(db: AsyncSession, user_id) -> str | None:
@@ -31,8 +32,8 @@ async def _top_news_headline(db: AsyncSession, user_id) -> str | None:
     return items[0]["title"] if items else None
 
 
-async def _build_digest(db: AsyncSession, user_id) -> tuple[str, str, str] | None:
-    """(push_title, push_body, email_body) 반환. 보낼 내용이 없으면 None."""
+async def _build_digest(db: AsyncSession, user_id) -> tuple[str, str, str, str] | None:
+    """(push_title, push_body, email_body, email_html) 반환. 보낼 내용이 없으면 None."""
     from app.services.analytics_service import AnalyticsService
     from app.services.notification_service import NotificationService
 
@@ -88,7 +89,7 @@ async def send_weekly_digest(db: AsyncSession) -> int:
         digest = await _build_digest(db, ns.user_id)
         if digest is None:
             continue
-        title, push_body, email_body = digest
+        title, push_body, email_body, email_html = digest
         delivered = False
 
         if ns.push_notifications and ns.push_token:
@@ -98,7 +99,9 @@ async def send_weekly_digest(db: AsyncSession) -> int:
         if ns.email_notifications and settings.SMTP_HOST:
             user = await db.get(User, ns.user_id)
             if user and user.email:
-                if await send_email(user.email, f"[SubFlow] {title}", email_body):
+                if await send_email(
+                    user.email, f"[SubFlow] {title}", email_body, html=email_html
+                ):
                     delivered = True
 
         if delivered:

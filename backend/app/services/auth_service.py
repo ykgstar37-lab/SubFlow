@@ -32,6 +32,7 @@ from app.models.subscription_history import SubscriptionHistory
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.services.delivery_service import send_email
+from app.services.email_template import render_email
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -117,7 +118,19 @@ class AuthService:
             f"확인 전에도 SubFlow는 그대로 쓸 수 있지만, 결제일 알림 메일은 "
             f"확인 후부터 발송됩니다.\n"
         )
-        sent = await send_email(user.email, "[SubFlow] 이메일 주소를 확인해주세요", body)
+        html = render_email(
+            heading=f"{user.username}님, SubFlow 가입을 환영합니다",
+            items=[(
+                "이메일 주소 확인",
+                f"아래 버튼을 누르면 확인이 끝납니다. 링크는 {EMAIL_VERIFY_EXPIRE_HOURS}시간 뒤 만료됩니다.",
+            )],
+            cta_label="이메일 주소 확인하기",
+            cta_url=link,
+            footer="확인 전에도 SubFlow는 그대로 쓸 수 있습니다. 다만 결제일 알림 메일은 확인 후부터 발송됩니다.",
+        )
+        sent = await send_email(
+            user.email, "[SubFlow] 이메일 주소를 확인해주세요", body, html=html
+        )
         if not sent:
             logger.warning("[auth] SMTP 미설정 - 인증 링크: %s", link)
 
@@ -209,7 +222,19 @@ class AuthService:
             f"이 링크는 {PASSWORD_RESET_EXPIRE_MINUTES}분 뒤 만료되며, 한 번만 쓸 수 있습니다.\n"
             f"본인이 요청한 게 아니라면 이 메일을 무시하세요. 비밀번호는 그대로입니다.\n"
         )
-        sent = await send_email(user.email, "[SubFlow] 비밀번호 재설정", body)
+        html = render_email(
+            heading="비밀번호 재설정",
+            items=[(
+                f"{user.username}님, 아래 버튼으로 비밀번호를 새로 정하세요.",
+                f"링크는 {PASSWORD_RESET_EXPIRE_MINUTES}분 뒤 만료되며 한 번만 쓸 수 있습니다.",
+            )],
+            cta_label="비밀번호 재설정하기",
+            cta_url=link,
+            footer="본인이 요청한 게 아니라면 이 메일을 무시하세요. 비밀번호는 그대로입니다.",
+        )
+        sent = await send_email(
+            user.email, "[SubFlow] 비밀번호 재설정", body, html=html
+        )
         if not sent:
             # SMTP 미설정(개발 환경)에서는 링크를 로그로 남겨 흐름을 확인할 수 있게 한다.
             logger.warning("[auth] SMTP 미설정 - 재설정 링크: %s", link)

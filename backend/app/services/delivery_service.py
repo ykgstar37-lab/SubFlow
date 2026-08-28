@@ -10,6 +10,7 @@ from app.config import settings
 from app.models.notification import Notification
 from app.models.notification_setting import NotificationSetting
 from app.models.user import User
+from app.services.email_template import render_email
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -63,6 +64,7 @@ async def _send_via_resend(
     key: str,
     attachments: list[dict] | None = None,
     reply_to: str | None = None,
+    html: str | None = None,
 ) -> bool:
     """Resend HTTP API로 발송.
 
@@ -78,7 +80,10 @@ async def _send_via_resend(
                 "from": settings.SMTP_FROM,
                 "to": [to],
                 "subject": subject,
+                # 평문을 항상 함께 싣는다. HTML을 끄고 보는 사람도 있고,
+                # 스팸 필터도 평문이 없는 메일에 점수를 깎는다.
                 "text": body,
+                **({"html": html} if html else {}),
                 # [{"filename": ..., "content": <base64 문자열>}]
                 **({"attachments": attachments} if attachments else {}),
                 # 보낸 주소는 no-reply라 그냥 회신하면 아무 데도 안 간다.
@@ -98,6 +103,7 @@ async def send_email(
     body: str,
     attachments: list[dict] | None = None,
     reply_to: str | None = None,
+    html: str | None = None,
 ) -> bool:
     """이메일 발송. 미설정이면 False(no-op).
 
@@ -110,7 +116,7 @@ async def send_email(
     key = _resend_key()
     if key:
         try:
-            return await _send_via_resend(to, subject, body, key, attachments, reply_to)
+            return await _send_via_resend(to, subject, body, key, attachments, reply_to, html)
         except Exception as exc:
             logger.warning("[delivery] resend failed: %s", exc)
             return False
@@ -124,6 +130,9 @@ async def send_email(
         msg["To"] = to
         msg["Subject"] = subject
         msg.set_content(body)
+        if html:
+            # multipart/alternative — HTML을 못 그리는 클라이언트는 평문으로 떨어진다
+            msg.add_alternative(html, subtype="html")
 
         await aiosmtplib.send(
             msg,
@@ -156,6 +165,27 @@ def _email_body(pending: list[Notification]) -> str:
             lines.append(f"  {n.body}")
     lines += ["", "앱에서 자세히 확인하세요 — SubFlow"]
     return "\n".join(lines)
+
+
+def _email_html(pending: list[Notification]) -> str:
+    """같은 내용을 HTML로. 평문(_email_body)과 함께 실어 보낸다."""
+    # 한 건이면 제목을 머리글로 올리고 본문만 남긴다. 둘 다 찍으면 같은 문장이
+    # 위아래로 두 번 나온다.
+    if len(pending) == 1:
+        n = pending[0]
+        heading = n.title
+        items: list[tuple[str, str | None]] = [(n.body, None)] if n.body else []
+    else:
+        heading = f"새 알림 {len(pending)}건"
+        items = [(n.title, n.body) for n in pending]
+
+    return render_email(
+        heading=heading,
+        items=items,
+        cta_label="SubFlow에서 열기",
+        cta_url=settings.APP_BASE_URL,
+        footer="알림 설정은 앱의 설정 화면에서 바꿀 수 있습니다. 이 주소로는 회신할 수 없습니다.",
+    )
 
 
 async def deliver_pending(db: AsyncSession) -> int:
@@ -211,7 +241,12 @@ async def deliver_pending(db: AsyncSession) -> int:
             # 확인되지 않은 주소로는 보내지 않는다. 오타로 가입한 경우 남의 메일함에
             # 구독 내역이 들어가고, 반송이 쌓이면 발신 도메인 평판도 깎인다.
             if user and user.email and user.email_verified:
-                if await send_email(user.email, f"[SubFlow] {title}", _email_body(pending)):
+                if await send_email(
+                    user.email,
+                    f"[SubFlow] {title}",
+                    _email_body(pending),
+                    html=_email_html(pending),
+                ):
                     attempted = True
 
         # 실제로 시도한 채널이 있을 때만 배송 완료로 표시 (없으면 다음 실행에서 재시도)
