@@ -1234,8 +1234,10 @@ async def seed_services(db: AsyncSession) -> None:
     existing_services = {s.name: s for s in svc_result.scalars().all()}
 
     # Get existing plans as dict {(service_id, plan_name): ServicePlan}
+    # 사용자가 카탈로그 서비스에 직접 넣은 요금제(user_id 있음)는 여기서 빼야 한다.
+    # 넣어 두면 아래 "시드에 없는 요금제 삭제"가 그 사람 요금제를 지워 버린다.
     default_service_ids = {s.id for s in existing_services.values()}
-    plan_result = await db.execute(select(ServicePlan))
+    plan_result = await db.execute(select(ServicePlan).where(ServicePlan.user_id.is_(None)))
     existing_plans = {
         (p.service_id, p.name): p
         for p in plan_result.scalars().all()
@@ -1437,7 +1439,7 @@ async def seed_price_history(db: AsyncSession) -> None:
     svc_result = await db.execute(select(Service).where(Service.user_id.is_(None)))
     svc_map = {s.name: s.id for s in svc_result.scalars().all()}
 
-    plan_result = await db.execute(select(ServicePlan))
+    plan_result = await db.execute(select(ServicePlan).where(ServicePlan.user_id.is_(None)))
     plan_map = {(p.service_id, p.name): p.id for p in plan_result.scalars().all()}
 
     for svc_name, plans in PRICE_HISTORY_DATA.items():

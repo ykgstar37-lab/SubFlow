@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,19 +16,22 @@ from app.schemas.service import (
     PlanPriceHistoryResponse,
     ServiceCreateRequest,
     ServiceListResponse,
+    ServicePlanCreateRequest,
+    ServicePlanResponse,
     ServiceResponse,
 )
 from app.utils.service_aliases import aliases_for, matches
+from app.utils.visibility import my_plans, only_visible_plans, visible_plans, visible_services
 
 router = APIRouter()
 
 
 def _visible_to(user: User):
     """기본 카탈로그(user_id IS NULL)와 내가 등록한 서비스만 보이게 하는 조건."""
-    return or_(Service.user_id.is_(None), Service.user_id == user.id)
+    return visible_services(user.id)
 
 
-def _to_list_item(service: Service) -> ServiceListResponse:
+def _to_list_item(service: Service, user_id: UUID) -> ServiceListResponse:
     """서비스 한 건을 목록 응답으로 옮긴다.
 
     목록·인기·검색 세 엔드포인트가 같은 모양을 만들어야 해서 한곳에 모았다.
@@ -36,7 +41,7 @@ def _to_list_item(service: Service) -> ServiceListResponse:
     "11,900~119,000원" 같은 값이 나와 읽는 사람이 열 배 비싼 요금제로 오해한다.
     연간 요금제는 시트를 열면 주기와 함께 그대로 보인다.
     """
-    plans = service.plans
+    plans = my_plans(service, user_id)
     currency = plans[0].currency if plans else None
     same_currency = [p for p in plans if p.currency == currency]
     monthly = [p.price for p in same_currency if p.billing_cycle == BillingCycle.MONTHLY]
@@ -62,6 +67,13 @@ def _to_list_item(service: Service) -> ServiceListResponse:
     )
 
 
+def _to_detail(service: Service, user_id: UUID) -> ServiceResponse:
+    """서비스 상세 응답. 요금제는 그 사람에게 보이는 것만 싣는다."""
+    body = ServiceResponse.model_validate(service)
+    body.plans = [ServicePlanResponse.model_validate(p) for p in my_plans(service, user_id)]
+    return body
+
+
 @router.get("", response_model=list[ServiceListResponse])
 async def list_services(
     category_id: int | None = None,
@@ -71,13 +83,14 @@ async def list_services(
     query = select(Service).options(
         selectinload(Service.category),
         selectinload(Service.plans),
+        only_visible_plans(current_user.id),
     ).where(_visible_to(current_user))
     if category_id:
         query = query.where(Service.category_id == category_id)
     query = query.order_by(Service.is_popular.desc(), Service.name)
 
     result = await db.execute(query)
-    return [_to_list_item(s) for s in result.scalars().all()]
+    return [_to_list_item(s, current_user.id) for s in result.scalars().all()]
 
 
 @router.get("/popular", response_model=list[ServiceListResponse])
@@ -87,11 +100,11 @@ async def popular_services(
 ):
     result = await db.execute(
         select(Service)
-        .options(selectinload(Service.category), selectinload(Service.plans))
+        .options(selectinload(Service.category), selectinload(Service.plans), only_visible_plans(current_user.id))
         .where(Service.is_popular.is_(True), _visible_to(current_user))
         .order_by(Service.name)
     )
-    return [_to_list_item(s) for s in result.scalars().all()]
+    return [_to_list_item(s, current_user.id) for s in result.scalars().all()]
 
 
 @router.get("/search", response_model=list[ServiceListResponse])
@@ -104,11 +117,15 @@ async def search_services(
     # 앱 쪽 사전에 있으므로 전부 읽어 와서 이름+별칭으로 거른다(88종이라 부담 없다).
     result = await db.execute(
         select(Service)
-        .options(selectinload(Service.category), selectinload(Service.plans))
+        .options(selectinload(Service.category), selectinload(Service.plans), only_visible_plans(current_user.id))
         .where(_visible_to(current_user))
         .order_by(Service.name)
     )
-    return [_to_list_item(s) for s in result.scalars().all() if matches(s.name, q)]
+    return [
+        _to_list_item(s, current_user.id)
+        for s in result.scalars().all()
+        if matches(s.name, q)
+    ]
 
 
 @router.get("/{service_id}/price-history", response_model=dict[int, list[PlanPriceHistoryResponse]])
@@ -122,7 +139,11 @@ async def get_price_history(
         select(PlanPriceHistory)
         .join(ServicePlan)
         .join(Service, Service.id == ServicePlan.service_id)
-        .where(ServicePlan.service_id == service_id, _visible_to(current_user))
+        .where(
+            ServicePlan.service_id == service_id,
+            _visible_to(current_user),
+            visible_plans(current_user.id),
+        )
         .order_by(PlanPriceHistory.effective_date)
     )
     rows = result.scalars().all()
@@ -143,13 +164,13 @@ async def get_service(
 ):
     result = await db.execute(
         select(Service)
-        .options(selectinload(Service.category), selectinload(Service.plans))
+        .options(selectinload(Service.category), selectinload(Service.plans), only_visible_plans(current_user.id))
         .where(Service.id == service_id, _visible_to(current_user))
     )
     service = result.scalar_one_or_none()
     if not service:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
-    return service
+    return _to_detail(service, current_user.id)
 
 
 @router.post("", response_model=ServiceResponse, status_code=status.HTTP_201_CREATED)
@@ -193,16 +214,16 @@ async def create_service(
     await db.flush()
 
     for plan_data in data.plans:
-        db.add(ServicePlan(service_id=service.id, **plan_data.model_dump()))
+        db.add(ServicePlan(service_id=service.id, user_id=current_user.id, **plan_data.model_dump()))
 
     await db.commit()
 
     result = await db.execute(
         select(Service)
-        .options(selectinload(Service.category), selectinload(Service.plans))
+        .options(selectinload(Service.category), selectinload(Service.plans), only_visible_plans(current_user.id))
         .where(Service.id == service.id)
     )
-    return result.scalar_one()
+    return _to_detail(result.scalar_one(), current_user.id)
 
 
 @router.delete("/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -234,4 +255,76 @@ async def delete_service(
             delete(PlanPriceHistory).where(PlanPriceHistory.plan_id.in_(plan_ids))
         )
     await db.delete(service)  # 요금제는 cascade로 함께 지워진다
+    await db.commit()
+
+
+@router.post(
+    "/{service_id}/plans",
+    response_model=ServicePlanResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_plan(
+    service_id: int,
+    data: ServicePlanCreateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """카탈로그에 없는 요금제를 직접 넣는다. 넣은 사람에게만 보인다.
+
+    실제 요금제는 카탈로그가 따라갈 수 없을 만큼 많고 특가도 수시로 바뀐다.
+    구독에 금액만 적어 두지 않고 진짜 요금제 행으로 남기는 이유는, plan_id가
+    있어야 요금 인상 이력·절약 제안이 그 구독을 알아보기 때문이다.
+    """
+    service = await db.execute(
+        select(Service).where(Service.id == service_id, _visible_to(current_user))
+    )
+    if not service.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
+
+    # 같은 서비스 안에서 이름이 겹치면 고를 때 구분이 안 된다.
+    existing = await db.execute(
+        select(ServicePlan).where(
+            ServicePlan.service_id == service_id,
+            ServicePlan.name == data.name,
+            visible_plans(current_user.id),
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Plan already exists"
+        )
+
+    plan = ServicePlan(service_id=service_id, user_id=current_user.id, **data.model_dump())
+    db.add(plan)
+    await db.commit()
+    await db.refresh(plan)
+    return plan
+
+
+@router.delete("/{service_id}/plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_plan(
+    service_id: int,
+    plan_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """내가 넣은 요금제를 지운다. 기본 카탈로그 요금제는 지울 수 없다."""
+    result = await db.execute(
+        select(ServicePlan).where(
+            ServicePlan.id == plan_id,
+            ServicePlan.service_id == service_id,
+            ServicePlan.user_id == current_user.id,
+        )
+    )
+    plan = result.scalar_one_or_none()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+
+    # 서비스를 지울 때와 같다 — 이 요금제로 등록한 구독은 남기고 연결만 끊는다.
+    # 금액·주기를 구독이 따로 들고 있어 화면은 그대로다.
+    await db.execute(
+        update(Subscription).where(Subscription.plan_id == plan_id).values(plan_id=None)
+    )
+    await db.execute(delete(PlanPriceHistory).where(PlanPriceHistory.plan_id == plan_id))
+    await db.delete(plan)
     await db.commit()

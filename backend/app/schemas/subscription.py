@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from app.models.subscription import BillingCycle, SubscriptionStatus
 from app.schemas.category import CategoryResponse
-from app.schemas.service import ServicePlanResponse, ServiceResponse
+from app.schemas.service import ServiceBriefResponse, ServicePlanResponse
 
 
 class CalendarEvent(BaseModel):
@@ -100,7 +100,7 @@ class SubscriptionResponse(BaseModel):
     category: CategoryResponse | None = None
     service_id: int | None = None
     plan_id: int | None = None
-    service: ServiceResponse | None = None
+    service: ServiceBriefResponse | None = None
     plan: ServicePlanResponse | None = None
     logo_url: str | None
     notes: str | None

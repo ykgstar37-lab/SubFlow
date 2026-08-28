@@ -35,6 +35,7 @@ from app.schemas.analytics import (
 )
 from app.utils.cost import to_monthly_cost, to_monthly_cost_krw
 from app.utils.exchange_rate import get_exchange_rates, to_krw
+from app.utils.visibility import only_visible_plans, visible_plans
 
 
 class AnalyticsService:
@@ -308,6 +309,7 @@ class AnalyticsService:
             .options(
                 selectinload(Subscription.service).selectinload(Service.plans),
                 selectinload(Subscription.plan),
+                only_visible_plans(user_id),
             )
             .where(
                 Subscription.user_id == user_id,
@@ -396,7 +398,7 @@ class AnalyticsService:
             result = await self.db.execute(
                 select(PlanPriceHistory)
                 .join(ServicePlan)
-                .where(ServicePlan.service_id == sub.service_id)
+                .where(ServicePlan.service_id == sub.service_id, visible_plans(user_id))
                 .order_by(PlanPriceHistory.plan_id, PlanPriceHistory.effective_date)
             )
             all_history = result.scalars().all()

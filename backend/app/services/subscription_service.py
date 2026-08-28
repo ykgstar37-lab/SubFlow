@@ -15,11 +15,14 @@ from app.models.subscription_history import HistoryEventType, SubscriptionHistor
 from app.schemas.subscription import SubscriptionCreateRequest, SubscriptionFromCatalogRequest, SubscriptionUpdateRequest
 from app.utils.cost import to_monthly_cost_krw
 from app.utils.exchange_rate import get_exchange_rates
+from app.utils.visibility import visible_plans
 
+# 구독 응답에 함께 실을 관계들. 서비스의 요금제 목록은 싣지 않는다 —
+# 요금제는 사람마다 보이는 목록이 다르고(직접 넣은 요금제), 구독 화면은
+# 쓰지도 않는다. 요금제 목록은 서비스 API에서 사람별로 걸러 내려준다.
 EAGER_LOADS = [
     selectinload(Subscription.category),
     selectinload(Subscription.service).selectinload(Service.category),
-    selectinload(Subscription.service).selectinload(Service.plans),
     selectinload(Subscription.plan),
 ]
 
@@ -127,7 +130,11 @@ class SubscriptionService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Service not found")
 
         plan_result = await self.db.execute(
-            select(ServicePlan).where(ServicePlan.id == data.plan_id, ServicePlan.service_id == data.service_id)
+            select(ServicePlan).where(
+                ServicePlan.id == data.plan_id,
+                ServicePlan.service_id == data.service_id,
+                visible_plans(user_id),
+            )
         )
         plan = plan_result.scalar_one_or_none()
         if not plan:
@@ -252,7 +259,9 @@ class SubscriptionService:
             new_plan_name = str(update_data["plan_id"])
             if update_data["plan_id"] is not None:
                 plan_result = await self.db.execute(
-                    select(ServicePlan).where(ServicePlan.id == update_data["plan_id"])
+                    select(ServicePlan).where(
+                        ServicePlan.id == update_data["plan_id"], visible_plans(user_id)
+                    )
                 )
                 new_plan = plan_result.scalar_one_or_none()
                 if new_plan:
@@ -305,7 +314,9 @@ class SubscriptionService:
                     detail="target_plan_id is required for downgrade/switch_billing",
                 )
             plan_result = await self.db.execute(
-                select(ServicePlan).where(ServicePlan.id == target_plan_id)
+                select(ServicePlan).where(
+                    ServicePlan.id == target_plan_id, visible_plans(user_id)
+                )
             )
             new_plan = plan_result.scalar_one_or_none()
             if new_plan is None:

@@ -24,6 +24,8 @@ class ServicePlanResponse(BaseModel):
     billing_cycle: BillingCycle
     description: str | None
     is_active: bool
+    # 내가 직접 넣은 요금제인지. 지우기 버튼과 "직접 입력" 표시를 이 값으로 가른다.
+    is_custom: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +44,29 @@ class ServiceResponse(BaseModel):
     # 내가 직접 등록한 서비스인지. 지우기 버튼을 이 값으로 가른다.
     is_custom: bool = False
     plans: list[ServicePlanResponse] = []
+
+    model_config = {"from_attributes": True}
+
+
+class ServiceBriefResponse(BaseModel):
+    """구독 응답에 딸려 나가는 서비스 정보.
+
+    요금제 목록은 넣지 않는다. 구독 화면은 서비스 이름·로고만 쓰고,
+    요금제는 사람마다 보이는 목록이 다르다(직접 넣은 요금제는 그 사람 것).
+    구독마다 요금제 전부를 실어 보내면 목록 응답만 무거워진다.
+    """
+
+    id: int
+    name: str
+    description: str | None
+    category_id: int | None
+    category: CategoryResponse | None = None
+    logo_url: str | None
+    website_url: str | None
+    cancel_url: str | None = None
+    is_popular: bool
+    created_at: datetime
+    is_custom: bool = False
 
     model_config = {"from_attributes": True}
 

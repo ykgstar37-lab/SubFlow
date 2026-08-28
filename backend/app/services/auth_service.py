@@ -99,6 +99,15 @@ class AuthService:
         ).scalar_subquery()
         await self.db.execute(delete(PlanPriceHistory).where(PlanPriceHistory.plan_id.in_(my_plan_ids)))
         await self.db.execute(delete(ServicePlan).where(ServicePlan.service_id.in_(my_service_ids)))
+        # 기본 카탈로그 서비스에 직접 넣어 둔 요금제도 users.id를 참조한다.
+        # 서비스로는 안 걸리므로 따로 지운다.
+        my_custom_plan_ids = select(ServicePlan.id).where(
+            ServicePlan.user_id == user.id
+        ).scalar_subquery()
+        await self.db.execute(
+            delete(PlanPriceHistory).where(PlanPriceHistory.plan_id.in_(my_custom_plan_ids))
+        )
+        await self.db.execute(delete(ServicePlan).where(ServicePlan.user_id == user.id))
         await self.db.execute(delete(Service).where(Service.user_id == user.id))
         await self.db.execute(delete(Category).where(Category.user_id == user.id))
 
