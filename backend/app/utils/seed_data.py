@@ -272,6 +272,7 @@ DEFAULT_SERVICES = {
         {
             "name": "CapCut Pro",
             "description": "숏폼 영상 편집기. 프로 전용 효과와 100GB 클라우드",
+            "logo_url": "/logos/capcut.png",
             "website_url": "https://www.capcut.com/ko-kr",
             "is_popular": True,
             "plans": [
@@ -284,6 +285,7 @@ DEFAULT_SERVICES = {
         {
             "name": "SNOW VIP",
             "description": "AI 프로필과 보정 필터를 무제한으로 쓰는 카메라 앱 구독",
+            "logo_url": "/logos/snow.png",
             "website_url": "https://snow.me",
             "is_popular": True,
             "plans": [
@@ -295,6 +297,7 @@ DEFAULT_SERVICES = {
         {
             "name": "VLLO",
             "description": "쉬운 모바일 영상 편집기. 광고 제거와 프리미엄 템플릿",
+            "logo_url": "/logos/vllo.png",
             "website_url": "https://www.vllo.io",
             "is_popular": True,
             "plans": [
@@ -309,6 +312,7 @@ DEFAULT_SERVICES = {
         {
             "name": "KineMaster Premium",
             "description": "모바일 영상 편집기. 워터마크 제거와 프리미엄 에셋",
+            "logo_url": "/logos/kinemaster.png",
             "website_url": "https://www.kinemaster.com/ko",
             "is_popular": False,
             "plans": [
@@ -319,6 +323,7 @@ DEFAULT_SERVICES = {
         {
             "name": "Vrew",
             "description": "AI 자막·편집 도구. 음성 인식으로 영상을 글처럼 자른다",
+            "logo_url": "/logos/vrew.png",
             "website_url": "https://vrew.ai/ko",
             "cancel_url": "https://vrew.ai/ko/my",
             "is_popular": False,
@@ -330,6 +335,7 @@ DEFAULT_SERVICES = {
         {
             "name": "Adobe Lightroom",
             "description": "사진 보정·관리. 1TB 클라우드 포함 단일 앱 플랜",
+            "logo_url": "/logos/lightroom.png",
             "website_url": "https://www.adobe.com/kr/products/photoshop-lightroom.html",
             "cancel_url": "https://account.adobe.com/plans",
             "is_popular": True,
@@ -340,6 +346,7 @@ DEFAULT_SERVICES = {
         {
             "name": "Picsart Pro",
             "description": "사진·영상 편집과 AI 생성 도구를 함께 쓰는 구독",
+            "logo_url": "/logos/picsart.png",
             "website_url": "https://picsart.com",
             "is_popular": False,
             "plans": [
@@ -349,6 +356,7 @@ DEFAULT_SERVICES = {
         {
             "name": "VSCO",
             "description": "필름 감성 프리셋과 사진 편집 도구. 연 단위 멤버십",
+            "logo_url": "/logos/vsco.png",
             "website_url": "https://vsco.co",
             "is_popular": False,
             "plans": [

@@ -91,6 +91,15 @@ const LOGOS: Record<string, ImageSourcePropType> = {
   '배민클럽': require('../../assets/logos/baemin.png'),
   '카카오톡 이모티콘 플러스': require('../../assets/logos/kakaotalk.png'),
   'Amazon Prime': require('../../assets/logos/amazonprime.png'),
+  // ── 사진·영상 ──
+  'CapCut Pro': require('../../assets/logos/capcut.png'),
+  'SNOW VIP': require('../../assets/logos/snow.png'),
+  'VLLO': require('../../assets/logos/vllo.png'),
+  'KineMaster Premium': require('../../assets/logos/kinemaster.png'),
+  'Vrew': require('../../assets/logos/vrew.png'),
+  'Adobe Lightroom': require('../../assets/logos/lightroom.png'),
+  'Picsart Pro': require('../../assets/logos/picsart.png'),
+  'VSCO': require('../../assets/logos/vsco.png'),
 };
 
 // ── 브랜드 배경색 (fallback용) ──
@@ -104,6 +113,14 @@ const BRAND_BG: Record<string, { bg: string; text: string }> = {
   'Figma': { bg: '#A259FF', text: '#FFF' },
   'Notion': { bg: '#2D2D2D', text: '#FFF' },
   'Slack': { bg: '#4A154B', text: '#FFF' },
+  'CapCut Pro': { bg: '#000000', text: '#FFF' },
+  'SNOW VIP': { bg: '#FFE600', text: '#1A1A1A' },
+  'VLLO': { bg: '#2C6BED', text: '#FFF' },
+  'KineMaster Premium': { bg: '#E8402A', text: '#FFF' },
+  'Vrew': { bg: '#5B4DF5', text: '#FFF' },
+  'Adobe Lightroom': { bg: '#001E36', text: '#31A8FF' },
+  'Picsart Pro': { bg: '#C209C1', text: '#FFF' },
+  'VSCO': { bg: '#000000', text: '#FFF' },
 };
 
 interface ServiceLogoProps {
