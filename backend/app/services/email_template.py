@@ -13,6 +13,16 @@
 
 from html import escape
 
+from app.config import settings
+
+#: 메일 머리의 로고. frontend/public/brand/ 에 있는 파일을 웹앱 주소로 부른다.
+#: 흰 카드 위에 얹히므로 검정 버전을 쓴다 — point(연한 하늘색) 버전은 거의 안 보인다.
+LOGO_FILE = "subflow-logo-pen-black.png"
+#: 원본이 1330×276이라 이 비율로 줄인다. 메일에서는 width/height를 명시해야
+#: 이미지가 늦게 오거나 차단됐을 때 레이아웃이 무너지지 않는다.
+LOGO_WIDTH = 130
+LOGO_HEIGHT = 27
+
 BRAND = "#4A90D9"
 INK = "#1F2A37"
 MUTED = "#6B7D8E"
@@ -49,8 +59,9 @@ def render_email(
 
     cta_html = ""
     if cta_label and cta_url:
+        # align 속성을 함께 준다. Outlook은 td의 text-align을 무시할 때가 있다.
         cta_html = (
-            f'<tr><td style="padding-top:24px;">'
+            f'<tr><td align="center" style="padding-top:24px;text-align:center;">'
             f'<a href="{escape(cta_url, quote=True)}" '
             f'style="display:inline-block;background:{BRAND};color:#FFFFFF;'
             f"text-decoration:none;font-size:14px;font-weight:700;"
@@ -64,6 +75,8 @@ def render_email(
             f'<tr><td style="padding-top:22px;border-top:1px solid {LINE};'
             f'font-size:12px;line-height:18px;color:{MUTED};">{escape(footer)}</td></tr>'
         )
+
+    logo = f"{settings.APP_BASE_URL.rstrip('/')}/brand/{LOGO_FILE}"
 
     return f"""\
 <!doctype html>
@@ -79,7 +92,11 @@ def render_email(
                   border:1px solid {LINE};padding:28px 26px;
                   font-family:-apple-system,'Segoe UI','Malgun Gothic',sans-serif;">
       <tr><td style="padding-bottom:18px;">
-        <span style="font-size:18px;font-weight:800;color:{BRAND};letter-spacing:-0.4px;">SubFlow</span>
+        <!-- 이미지가 차단되면 alt가 대신 보인다. 그때도 로고처럼 읽히도록
+             글자 스타일을 img에 직접 얹어 둔다. -->
+        <img src="{logo}" alt="SubFlow" width="{LOGO_WIDTH}" height="{LOGO_HEIGHT}"
+             style="display:block;border:0;outline:none;text-decoration:none;
+                    font-size:18px;font-weight:800;color:{BRAND};letter-spacing:-0.4px;">
       </td></tr>
       <tr><td style="font-size:19px;line-height:27px;font-weight:700;color:{INK};padding-bottom:6px;">
         {escape(heading)}
