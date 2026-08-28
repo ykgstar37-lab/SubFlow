@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.category import Category
@@ -13,6 +13,9 @@ DEFAULT_CATEGORIES = [
     {"name": "Entertainment", "icon": "🎬", "color": "#E50914", "is_default": True},
     {"name": "Music", "icon": "🎵", "color": "#1DB954", "is_default": True},
     {"name": "Photo & Video", "icon": "📸", "color": "#E1306C", "is_default": True},
+    # AI 도구는 개발자만 쓰는 게 아니다. Developer Tools 안에 있으면 GPT·클로드를
+    # 찾는 사람이 개발자 메뉴를 뒤져야 한다.
+    {"name": "AI", "icon": "✨", "color": "#C96442", "is_default": True},
     {"name": "Developer Tools", "icon": "💻", "color": "#6E40C9", "is_default": True},
     {"name": "Cloud/Infrastructure", "icon": "☁️", "color": "#FF9900", "is_default": True},
     {"name": "Productivity", "icon": "📋", "color": "#4285F4", "is_default": True},
@@ -41,6 +44,17 @@ DEFAULT_SERVICES = {
                 {"name": "스탠다드", "price": 13500, "currency": "KRW", "billing_cycle": "MONTHLY"},
                 {"name": "프리미엄", "price": 17000, "currency": "KRW", "billing_cycle": "MONTHLY"},
             ],
+        },
+        {
+            # 요금제를 넣지 않는다 — 채널마다, 티어마다 값이 다르다.
+            # 구독 중인 채널을 '요금제 직접 입력'으로 넣어 쓰는 것이 이 항목의 용도다.
+            "name": "YouTube 채널 멤버십",
+            "description": "개인 채널 멤버십. 가격은 채널·티어마다 달라 직접 넣어 씁니다",
+            "website_url": "https://www.youtube.com/paid_memberships",
+            "cancel_url": "https://www.youtube.com/paid_memberships",
+            "logo_url": "/logos/youtube.png",
+            "is_popular": False,
+            "plans": [],
         },
         {
             "name": "YouTube Premium",
@@ -365,29 +379,7 @@ DEFAULT_SERVICES = {
             ],
         },
     ],
-    "Developer Tools": [
-        {
-            "name": "GitHub Copilot",
-            "description": "AI 기반 코드 자동완성 도구",
-            "website_url": "https://github.com/features/copilot",
-            "logo_url": "/logos/github.png",
-            "is_popular": True,
-            "plans": [
-                {"name": "Individual", "price": 10, "currency": "USD", "billing_cycle": "MONTHLY"},
-                {"name": "Business", "price": 19, "currency": "USD", "billing_cycle": "MONTHLY"},
-                {"name": "Pro+", "price": 39, "currency": "USD", "billing_cycle": "MONTHLY"},
-            ],
-        },
-        {
-            "name": "JetBrains All Products",
-            "description": "IntelliJ, PyCharm, WebStorm 등 JetBrains IDE 전체 패키지",
-            "website_url": "https://www.jetbrains.com",
-            "logo_url": "/logos/jetbrains.png",
-            "is_popular": True,
-            "plans": [
-                {"name": "Individual", "price": 24.90, "currency": "USD", "billing_cycle": "MONTHLY"},
-            ],
-        },
+    "AI": [
         {
             "name": "ChatGPT Plus",
             "description": "OpenAI의 AI 챗봇 프리미엄 서비스",
@@ -415,40 +407,13 @@ DEFAULT_SERVICES = {
             ],
         },
         {
-            "name": "Notion",
-            "description": "올인원 워크스페이스 — 문서, 위키, 프로젝트 관리",
-            "website_url": "https://www.notion.so",
-            "cancel_url": "https://www.notion.so/my-account/plans",
-            "logo_url": "/logos/notion.png",
-            "is_popular": True,
-            "plans": [
-                {"name": "Plus", "price": 10, "currency": "USD", "billing_cycle": "MONTHLY"},
-                {"name": "Business", "price": 18, "currency": "USD", "billing_cycle": "MONTHLY"},
-            ],
-        },
-        {
-            "name": "Figma",
-            "description": "협업 디자인 툴 — UI/UX 디자인, 프로토타이핑",
-            "website_url": "https://www.figma.com",
-            "cancel_url": "https://www.figma.com/settings/billing",
-            "logo_url": "/logos/figma.png",
-            "is_popular": True,
-            "plans": [
-                {"name": "Professional", "price": 15, "currency": "USD", "billing_cycle": "MONTHLY"},
-                {"name": "Organization", "price": 45, "currency": "USD", "billing_cycle": "MONTHLY"},
-            ],
-        },
-        {
-            "name": "Cursor",
-            "description": "AI 기반 코드 에디터",
-            "website_url": "https://cursor.sh",
-            "logo_url": "/logos/cursor.png",
+            "name": "Perplexity Pro",
+            "description": "AI 기반 검색 엔진 프리미엄 서비스",
+            "website_url": "https://www.perplexity.ai",
+            "logo_url": "/logos/perplexity.png",
             "is_popular": True,
             "plans": [
                 {"name": "Pro", "price": 20, "currency": "USD", "billing_cycle": "MONTHLY"},
-                {"name": "Business", "price": 40, "currency": "USD", "billing_cycle": "MONTHLY"},
-                {"name": "Pro+", "price": 60, "currency": "USD", "billing_cycle": "MONTHLY"},
-                {"name": "Ultra", "price": 200, "currency": "USD", "billing_cycle": "MONTHLY"},
             ],
         },
         {
@@ -464,14 +429,41 @@ DEFAULT_SERVICES = {
                 {"name": "Mega", "price": 120, "currency": "USD", "billing_cycle": "MONTHLY"},
             ],
         },
+    ],
+    "Developer Tools": [
         {
-            "name": "Perplexity Pro",
-            "description": "AI 기반 검색 엔진 프리미엄 서비스",
-            "website_url": "https://www.perplexity.ai",
-            "logo_url": "/logos/perplexity.png",
+            "name": "GitHub Copilot",
+            "description": "AI 기반 코드 자동완성 도구",
+            "website_url": "https://github.com/features/copilot",
+            "logo_url": "/logos/github.png",
+            "is_popular": True,
+            "plans": [
+                {"name": "Individual", "price": 10, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Business", "price": 19, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Pro+", "price": 39, "currency": "USD", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "JetBrains All Products",
+            "description": "IntelliJ, PyCharm, WebStorm 등 JetBrains IDE 전체 패키지",
+            "website_url": "https://www.jetbrains.com",
+            "logo_url": "/logos/jetbrains.png",
+            "is_popular": True,
+            "plans": [
+                {"name": "Individual", "price": 24.90, "currency": "USD", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "Cursor",
+            "description": "AI 기반 코드 에디터",
+            "website_url": "https://cursor.sh",
+            "logo_url": "/logos/cursor.png",
             "is_popular": True,
             "plans": [
                 {"name": "Pro", "price": 20, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Business", "price": 40, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Pro+", "price": 60, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Ultra", "price": 200, "currency": "USD", "billing_cycle": "MONTHLY"},
             ],
         },
         {
@@ -551,6 +543,30 @@ DEFAULT_SERVICES = {
         },
     ],
     "Productivity": [
+        {
+            "name": "Notion",
+            "description": "올인원 워크스페이스 — 문서, 위키, 프로젝트 관리",
+            "website_url": "https://www.notion.so",
+            "cancel_url": "https://www.notion.so/my-account/plans",
+            "logo_url": "/logos/notion.png",
+            "is_popular": True,
+            "plans": [
+                {"name": "Plus", "price": 10, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Business", "price": 18, "currency": "USD", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
+            "name": "Figma",
+            "description": "협업 디자인 툴 — UI/UX 디자인, 프로토타이핑",
+            "website_url": "https://www.figma.com",
+            "cancel_url": "https://www.figma.com/settings/billing",
+            "logo_url": "/logos/figma.png",
+            "is_popular": True,
+            "plans": [
+                {"name": "Professional", "price": 15, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Organization", "price": 45, "currency": "USD", "billing_cycle": "MONTHLY"},
+            ],
+        },
         {
             "name": "Microsoft 365",
             "description": "Word, Excel, PowerPoint, OneDrive 등 오피스 생산성 도구",
@@ -1278,6 +1294,18 @@ async def seed_services(db: AsyncSession) -> None:
                 # 소속 카테고리와 인기 표시도 여기 값이 기준이다. 위 루프는 값이
                 # 참일 때만 반영하므로 False나 카테고리 이동은 통과하지 못한다.
                 if category_id is not None and service.category_id != category_id:
+                    # 카탈로그에서 서비스가 다른 분류로 옮겨 가면(예: ChatGPT를
+                    # Developer Tools → AI), 이미 담아 둔 구독은 옛 분류에 남는다.
+                    # 사용자가 직접 고른 분류는 건드리면 안 되므로, 옛 분류를
+                    # 그대로 쓰고 있던 구독만 함께 옮긴다.
+                    await db.execute(
+                        update(Subscription)
+                        .where(
+                            Subscription.service_id == service.id,
+                            Subscription.category_id == service.category_id,
+                        )
+                        .values(category_id=category_id)
+                    )
                     service.category_id = category_id
                     changed = True
                 if service.is_popular != svc_data.get("is_popular", False):

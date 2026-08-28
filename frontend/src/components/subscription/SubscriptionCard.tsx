@@ -67,7 +67,13 @@ export default function SubscriptionCard({ subscription, onEdit, onDelete }: Pro
           )}
           <div className="min-w-0">
             <h3 className="truncate font-semibold text-slate-900">{subscription.service_name}</h3>
-            <p className="truncate text-xs text-slate-400">{subscription.category?.name ?? tr("미분류")}</p>
+            {/* 서비스 하나에 요금제가 여럿이면(예: 채널마다 다른 유튜브 멤버십)
+                이름만으로는 구분이 안 된다. 요금제가 있으면 앞에 세운다. */}
+            <p className="truncate text-xs text-slate-400">
+              {[subscription.plan?.name, subscription.category?.name]
+                .filter(Boolean)
+                .join(" · ") || tr("미분류")}
+            </p>
           </div>
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[subscription.status]}`}>

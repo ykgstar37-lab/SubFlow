@@ -651,8 +651,11 @@ export default function SubscriptionsScreen() {
                   {language === 'ko' ? `${selectedSub.name} 구독 플랜` : `${selectedSub.name} Plans`}
                 </Text>
                 {servicePlans.map((plan, i) => {
+                  // 이름이 먼저다. 금액으로 맞추면 부가세가 붙은 구독(해외 서비스는
+                  // 정가 + 10%가 실제 결제액이다)이 제 요금제를 못 찾는다.
                   const isCurrentPlan = !selectedPlan
-                    ? (plan.price === selectedSub.amount && (plan.name === selectedSub.plan || plan.cycle === selectedSub.cycle))
+                    ? (plan.name === selectedSub.plan
+                       || (plan.price === selectedSub.amount && plan.cycle === selectedSub.cycle))
                     : plan.name === selectedPlan.name;
                   return (
                     <TouchableOpacity
