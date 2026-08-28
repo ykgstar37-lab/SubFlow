@@ -464,9 +464,9 @@ const EN: Record<string, string> = {
   "부가세 별도": "+VAT",
   "부가세 포함 {amount}": "{amount} with VAT",
   "정가 {price} + 부가세 10%": "{price} list price + 10% VAT",
-  "이 금액에 부가세가 포함되어 있어요": "This amount already includes VAT",
-  "끄면 결제할 때 10%가 더 붙는 것으로 계산합니다.":
-    "Uncheck and we add 10% on top when you subscribe.",
+  "이 금액에 부가세 10%가 별도로 붙어요": "10% VAT is added on top of this amount",
+  "체크하면 위 금액이 부가세까지 더한 실제 결제액으로 바뀝니다.":
+    "Check this and the amount above becomes what you actually pay.",
 
   // ── 구독 목록 분류 ──
   "분류 전체": "All groups",

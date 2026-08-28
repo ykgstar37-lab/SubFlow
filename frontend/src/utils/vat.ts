@@ -20,6 +20,12 @@ export function withVat(price: number, currency: string, vatIncluded?: boolean):
   return currency === "KRW" ? Math.round(raw) : Math.round(raw * 100) / 100;
 }
 
+/** withVat의 반대. 부가세를 더했던 금액을 원래대로 되돌린다. */
+export function withoutVat(amount: number, currency: string): number {
+  const raw = amount / (1 + VAT_RATE);
+  return currency === "KRW" ? Math.round(raw) : Math.round(raw * 100) / 100;
+}
+
 /** 금액 한 건을 통화에 맞춰 적는다. "$22" / "26,400원" */
 export function formatAmount(amount: number, currency: string, wonLabel: string): string {
   const text = new Intl.NumberFormat("ko-KR").format(amount);

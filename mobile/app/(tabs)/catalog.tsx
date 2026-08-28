@@ -242,8 +242,9 @@ export default function CatalogScreen() {
   const [newPlanPrice, setNewPlanPrice] = useState('');
   const [newPlanCurrency, setNewPlanCurrency] = useState('KRW');
   const [newPlanCycle, setNewPlanCycle] = useState('monthly');
-  // 사람이 직접 넣는 금액은 대개 청구서에 찍힌 실결제액이라 포함가로 본다
-  const [newPlanVatIncluded, setNewPlanVatIncluded] = useState(true);
+  // 대개는 청구서에 찍힌 실결제액을 그대로 적으므로 꺼진 게 기본이다.
+  // 공식 가격표(부가세 별도)를 보고 적을 때만 켠다.
+  const [newPlanVatSeparate, setNewPlanVatSeparate] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
 
   // 캘린더 데이터
@@ -464,8 +465,21 @@ export default function CatalogScreen() {
     setNewPlanPrice('');
     setNewPlanCurrency('KRW');
     setNewPlanCycle('monthly');
-    setNewPlanVatIncluded(true);
+    setNewPlanVatSeparate(false);
     setSavingPlan(false);
+  };
+
+  /** 켜면 금액 칸을 부가세까지 더한 실결제액으로 바꾸고, 끄면 되돌린다.
+   *  플래그로 들고 있다가 나중에 계산하지 않는다 — 눈에 보이는 금액이
+   *  그대로 저장되는 편이 헷갈리지 않는다. */
+  const toggleNewPlanVat = () => {
+    const next = !newPlanVatSeparate;
+    setNewPlanVatSeparate(next);
+    const amount = Number(newPlanPrice);
+    if (!newPlanPrice.trim() || Number.isNaN(amount)) return;
+    const raw = next ? amount * 1.1 : amount / 1.1;
+    const rounded = newPlanCurrency === 'KRW' ? Math.round(raw) : Math.round(raw * 100) / 100;
+    setNewPlanPrice(String(rounded));
   };
 
   const handleAddPlan = async () => {
@@ -480,7 +494,8 @@ export default function CatalogScreen() {
         price: Number(newPlanPrice),
         currency: newPlanCurrency,
         billing_cycle: newPlanCycle,
-        vat_included: newPlanVatIncluded,
+        // 금액 칸이 이미 실결제액이다(부가세를 켰으면 더해 놓았다)
+        vat_included: true,
       });
       const plan: Plan = {
         id: res.data.id,
@@ -928,18 +943,18 @@ export default function CatalogScreen() {
                       </View>
                       <TouchableOpacity
                         style={styles.modalPlanVatToggle}
-                        onPress={() => setNewPlanVatIncluded((v) => !v)}
+                        onPress={toggleNewPlanVat}
                         activeOpacity={0.6}
                       >
                         <Ionicons
-                          name={newPlanVatIncluded ? 'checkbox' : 'square-outline'}
+                          name={newPlanVatSeparate ? 'checkbox' : 'square-outline'}
                           size={18}
-                          color={newPlanVatIncluded ? Colors.primary : Colors.textTertiary}
+                          color={newPlanVatSeparate ? Colors.primary : Colors.textTertiary}
                         />
                         <Text style={styles.modalPlanVatToggleText}>
                           {language === 'ko'
-                            ? '이 금액에 부가세가 포함되어 있어요'
-                            : 'This amount already includes VAT'}
+                            ? '부가세 10% 별도 (켜면 금액에 더해집니다)'
+                            : 'Add 10% VAT on top of this amount'}
                         </Text>
                       </TouchableOpacity>
 

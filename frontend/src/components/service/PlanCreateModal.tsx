@@ -4,6 +4,7 @@ import { serviceApi } from "../../api/services";
 import type { ServicePlan } from "../../types/service";
 import type { BillingCycle } from "../../types/subscription";
 import { tr } from "../../i18n/translations";
+import { withVat, withoutVat } from "../../utils/vat";
 import SubscriptionModal from "../subscription/SubscriptionModal";
 
 interface Props {
@@ -27,10 +28,20 @@ export default function PlanCreateModal({
   const [currency, setCurrency] = useState("KRW");
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [description, setDescription] = useState("");
-  // 직접 넣는 금액은 대개 청구서에 찍힌 실결제액이라 포함가로 본다.
-  // 공식 가격표를 보고 적는 사람도 있어 끌 수 있게 둔다.
-  const [vatIncluded, setVatIncluded] = useState(true);
+  // 대개는 청구서에 찍힌 실결제액을 그대로 적으므로 꺼진 상태가 기본이다.
+  // 공식 가격표(부가세 별도)를 보고 적을 때만 켜면 된다.
+  const [vatSeparate, setVatSeparate] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  /** 켜면 금액 칸을 부가세까지 더한 실결제액으로 바꾸고, 끄면 되돌린다.
+   *  플래그로 들고 있다가 나중에 계산하지 않는다 — 눈에 보이는 금액이
+   *  그대로 저장되는 편이 헷갈리지 않는다. */
+  const toggleVat = (checked: boolean) => {
+    setVatSeparate(checked);
+    const amount = Number(price);
+    if (!price.trim() || Number.isNaN(amount)) return;
+    setPrice(String(checked ? withVat(amount, currency, false) : withoutVat(amount, currency)));
+  };
 
   const reset = () => {
     setName("");
@@ -38,7 +49,7 @@ export default function PlanCreateModal({
     setCurrency("KRW");
     setCycle("monthly");
     setDescription("");
-    setVatIncluded(true);
+    setVatSeparate(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,7 +65,8 @@ export default function PlanCreateModal({
         currency,
         billing_cycle: cycle,
         description: description.trim() || undefined,
-        vat_included: vatIncluded,
+        // 금액 칸이 이미 실결제액이다(부가세를 켰으면 더해 놓았다).
+        vat_included: true,
       });
       toast.success(tr("요금제를 추가했습니다."));
       reset();
@@ -140,14 +152,14 @@ export default function PlanCreateModal({
         <label className="flex items-start gap-2">
           <input
             type="checkbox"
-            checked={vatIncluded}
-            onChange={(e) => setVatIncluded(e.target.checked)}
+            checked={vatSeparate}
+            onChange={(e) => toggleVat(e.target.checked)}
             className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
           />
           <span className="text-sm text-slate-500">
-            {tr("이 금액에 부가세가 포함되어 있어요")}
+            {tr("이 금액에 부가세 10%가 별도로 붙어요")}
             <span className="mt-0.5 block text-xs text-slate-400">
-              {tr("끄면 결제할 때 10%가 더 붙는 것으로 계산합니다.")}
+              {tr("체크하면 위 금액이 부가세까지 더한 실제 결제액으로 바뀝니다.")}
             </span>
           </span>
         </label>
