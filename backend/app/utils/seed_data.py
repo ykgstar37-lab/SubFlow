@@ -592,7 +592,11 @@ DEFAULT_SERVICES = {
             "logo_url": "/logos/adobe.png",
             "is_popular": True,
             "plans": [
-                {"name": "전체 앱", "price": 62000, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                # Adobe Korea 개인용 표시가는 부가세 포함이다(팀용은 별도로 적힌다).
+                # 첫해 할인가(₩58,200)는 넣지 않는다 — 특가는 금방 낡는다.
+                # 그런 값은 '요금제 직접 입력'으로 각자 넣는 쪽이 맞다.
+                {"name": "전체 앱", "price": 78100, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                # 아래 둘은 아직 최신인지 확인하지 못한 값이다.
                 {"name": "단일 앱", "price": 24000, "currency": "KRW", "billing_cycle": "MONTHLY"},
                 {"name": "포토그래피", "price": 26400, "currency": "KRW", "billing_cycle": "MONTHLY"},
             ],
