@@ -6,6 +6,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app import messages
 from app.models.notification import Notification, NotificationType
 from app.models.notification_setting import NotificationSetting
 from app.models.subscription import Subscription, SubscriptionStatus
@@ -129,8 +130,8 @@ class NotificationService:
 
         for o in overlaps:
             key = f"overlap:{o.category}"
-            title = f"'{o.category}' 카테고리에 구독 {len(o.services)}개가 겹칩니다"
-            body = f"{', '.join(o.services)} · 월 약 {int(o.total_monthly_cost):,}원. 통합을 고려해보세요."
+            title = messages.overlap_title(o.category, len(o.services))
+            body = messages.overlap_body(", ".join(o.services), int(o.total_monthly_cost))
             note = by_key.get(key)
             if note is None:
                 self.db.add(
@@ -139,7 +140,7 @@ class NotificationService:
                         type=NotificationType.OVERLAP.value,
                         title=title,
                         body=body,
-                        category="구독 알림",
+                        category=messages.NOTIFICATION_CATEGORY,
                         link="/analytics",
                         dedup_key=key,
                     )
@@ -188,10 +189,12 @@ class NotificationService:
                 continue
             up = a.change_amount > 0
             pct = f"{'+' if up else ''}{a.change_percentage:.1f}%"
-            title = f"{a.service_name} 요금이 {'인상' if up else '인하'}됐어요"
-            body = (
-                f"{a.plan_name} · {_fmt_money(a.old_price, a.currency)} → "
-                f"{_fmt_money(a.new_price, a.currency)} ({pct})"
+            title = messages.price_change_title(a.service_name, up)
+            body = messages.price_change_body(
+                a.plan_name,
+                _fmt_money(a.old_price, a.currency),
+                _fmt_money(a.new_price, a.currency),
+                pct,
             )
             cancel_url = cancel_urls.get(a.subscription_id)
             self.db.add(
@@ -200,10 +203,10 @@ class NotificationService:
                     type=NotificationType.PRICE_CHANGE.value,
                     title=title,
                     body=body,
-                    category="구독 알림",
+                    category=messages.NOTIFICATION_CATEGORY,
                     link="/subscriptions",
                     action_url=cancel_url,
-                    action_label="해지 가이드" if cancel_url else None,
+                    action_label=messages.ACTION_CANCEL_GUIDE if cancel_url else None,
                     dedup_key=key,
                 )
             )
@@ -266,12 +269,12 @@ class NotificationService:
                 Notification(
                     user_id=user_id,
                     type=NotificationType.TRIAL_EXPIRY.value,
-                    title=f"{t.service_name} 무료체험이 곧 끝나요 ({dday})",
-                    body=f"{t.trial_end_date} 이후 월 {int(t.cost_after_trial_krw):,}원이 청구돼요.",
-                    category="구독 알림",
+                    title=messages.trial_title(t.service_name, dday),
+                    body=messages.trial_body(t.trial_end_date, int(t.cost_after_trial_krw)),
+                    category=messages.NOTIFICATION_CATEGORY,
                     link="/subscriptions",
                     action_url=cancel_url,
-                    action_label="해지 가이드" if cancel_url else None,
+                    action_label=messages.ACTION_CANCEL_GUIDE if cancel_url else None,
                     dedup_key=key,
                 )
             )
@@ -320,23 +323,25 @@ class NotificationService:
                 continue
 
             days = (sub.next_billing_date - today).days
-            when = "오늘" if days == 0 else ("내일" if days == 1 else f"{days}일 뒤")
+            when = messages.renewal_when(days)
             # 청구되는 건 분담 몫이 아니라 전체 금액이므로 cost를 그대로 쓴다
             amount = _fmt_money(sub.cost, sub.currency)
             share = ""
             if (sub.member_count or 1) > 1:
-                share = f" (내 몫 {_fmt_money(sub.personal_cost, sub.currency)})"
+                share = messages.renewal_share(_fmt_money(sub.personal_cost, sub.currency))
 
             self.db.add(
                 Notification(
                     user_id=user_id,
                     type=NotificationType.RENEWAL.value,
-                    title=f"{sub.service_name} 결제가 {when}예요",
-                    body=f"{sub.next_billing_date.month}월 {sub.next_billing_date.day}일 · {amount}{share}",
-                    category="구독 알림",
+                    title=messages.renewal_title(sub.service_name, when),
+                    body=messages.renewal_body(
+                        sub.next_billing_date.month, sub.next_billing_date.day, amount, share
+                    ),
+                    category=messages.NOTIFICATION_CATEGORY,
                     link="/subscriptions",
                     action_url=cancel_urls.get(str(sub.id)),
-                    action_label="해지 가이드" if cancel_urls.get(str(sub.id)) else None,
+                    action_label=messages.ACTION_CANCEL_GUIDE if cancel_urls.get(str(sub.id)) else None,
                     dedup_key=key,
                 )
             )
@@ -359,12 +364,13 @@ class NotificationService:
             Notification(
                 user_id=user_id,
                 type=NotificationType.BUDGET.value,
-                title="이번 달 예산을 초과했어요",
-                body=(
-                    f"지출 {int(status_.current_spending):,}원 / 예산 "
-                    f"{int(status_.budget_monthly):,}원 ({status_.percentage_used:.0f}%)"
+                title=messages.BUDGET_TITLE,
+                body=messages.budget_body(
+                    int(status_.current_spending),
+                    int(status_.budget_monthly),
+                    status_.percentage_used,
                 ),
-                category="구독 알림",
+                category=messages.NOTIFICATION_CATEGORY,
                 link="/analytics",
                 dedup_key=key,
             )
@@ -390,12 +396,9 @@ class NotificationService:
                 Notification(
                     user_id=user_id,
                     type=NotificationType.EXCHANGE_RATE.value,
-                    title=f"{a.service_name} 환율이 올랐어요",
-                    body=(
-                        f"{a.currency} +{a.change_percentage:.1f}% · "
-                        f"월 약 {int(a.extra_cost_krw):,}원 더 나가요."
-                    ),
-                    category="구독 알림",
+                    title=messages.fx_title(a.service_name),
+                    body=messages.fx_body(a.currency, a.change_percentage, int(a.extra_cost_krw)),
+                    category=messages.NOTIFICATION_CATEGORY,
                     link="/analytics",
                     dedup_key=key,
                 )

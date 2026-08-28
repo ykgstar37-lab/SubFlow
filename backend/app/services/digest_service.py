@@ -1,6 +1,7 @@
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import messages
 from app.config import settings
 from app.models.notification_setting import NotificationSetting
 from app.models.subscription import Subscription, SubscriptionStatus
@@ -58,17 +59,30 @@ async def _build_digest(db: AsyncSession, user_id) -> tuple[str, str, str, str] 
         push_parts.append(f"절약 가능 최대 {total_savings:,}원")
     push_body = " · ".join(push_parts) or "이번 주 구독 현황을 확인해보세요"
 
-    lines = ["이번 주 SubFlow Brief", ""]
+    # 평문과 HTML이 같은 내용을 보게 lines와 items를 나란히 쌓는다
+    lines = [messages.DIGEST_TITLE, ""]
+    items: list[tuple[str, str | None]] = []
     if unread:
-        lines.append(f"• 확인하지 않은 알림이 {unread}건 있어요.")
+        lines.append(f"• {messages.digest_unread(unread)}")
+        items.append((messages.digest_unread_item(unread), None))
     if top_saving:
         lines.append(f"• {top_saving.suggestion_text}")
+        items.append((messages.DIGEST_SAVING_LABEL, top_saving.suggestion_text))
     if headline:
-        lines.append(f"• 관심 소식: {headline}")
-    lines += ["", "앱에서 자세히 확인하세요 — SubFlow"]
+        lines.append(f"• {messages.digest_news(headline)}")
+        items.append((messages.DIGEST_NEWS_LABEL, headline))
+    lines += ["", messages.MAIL_TEXT_FOOTER]
     email_body = "\n".join(lines)
 
-    return "이번 주 SubFlow Brief 📬", push_body, email_body
+    email_html = render_email(
+        heading=messages.DIGEST_TITLE,
+        items=items,
+        cta_label=messages.MAIL_CTA,
+        cta_url=settings.APP_BASE_URL,
+        footer=messages.MAIL_FOOTER_DIGEST,
+    )
+
+    return messages.DIGEST_PUSH_TITLE, push_body, email_body, email_html
 
 
 async def send_weekly_digest(db: AsyncSession) -> int:
@@ -100,7 +114,7 @@ async def send_weekly_digest(db: AsyncSession) -> int:
             user = await db.get(User, ns.user_id)
             if user and user.email:
                 if await send_email(
-                    user.email, f"[SubFlow] {title}", email_body, html=email_html
+                    user.email, messages.subject(title), email_body, html=email_html
                 ):
                     delivered = True
 

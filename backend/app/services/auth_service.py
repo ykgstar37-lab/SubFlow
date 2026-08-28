@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import messages
 from app.config import settings
 from app.core.security import (
     EMAIL_VERIFY_EXPIRE_HOURS,
@@ -110,26 +111,19 @@ class AuthService:
             return
         token = create_email_verify_token(str(user.id), user.email)
         link = f"{settings.APP_BASE_URL.rstrip('/')}/verify-email?token={token}"
-        body = (
-            f"{user.username}님, SubFlow 가입을 환영합니다.\n\n"
-            f"아래 링크를 열면 이메일 주소 확인이 끝납니다.\n"
-            f"{link}\n\n"
-            f"이 링크는 {EMAIL_VERIFY_EXPIRE_HOURS}시간 뒤 만료됩니다.\n"
-            f"확인 전에도 SubFlow는 그대로 쓸 수 있지만, 결제일 알림 메일은 "
-            f"확인 후부터 발송됩니다.\n"
-        )
+        body = messages.verify_text(user.username, link, EMAIL_VERIFY_EXPIRE_HOURS)
         html = render_email(
-            heading=f"{user.username}님, SubFlow 가입을 환영합니다",
+            heading=messages.verify_heading(user.username),
             items=[(
-                "이메일 주소 확인",
-                f"아래 버튼을 누르면 확인이 끝납니다. 링크는 {EMAIL_VERIFY_EXPIRE_HOURS}시간 뒤 만료됩니다.",
+                messages.VERIFY_ITEM_TITLE,
+                messages.verify_item_body(EMAIL_VERIFY_EXPIRE_HOURS),
             )],
-            cta_label="이메일 주소 확인하기",
+            cta_label=messages.VERIFY_CTA,
             cta_url=link,
-            footer="확인 전에도 SubFlow는 그대로 쓸 수 있습니다. 다만 결제일 알림 메일은 확인 후부터 발송됩니다.",
+            footer=messages.VERIFY_FOOTER,
         )
         sent = await send_email(
-            user.email, "[SubFlow] 이메일 주소를 확인해주세요", body, html=html
+            user.email, messages.subject(messages.VERIFY_SUBJECT), body, html=html
         )
         if not sent:
             logger.warning("[auth] SMTP 미설정 - 인증 링크: %s", link)
@@ -215,25 +209,19 @@ class AuthService:
 
         token = create_password_reset_token(str(user.id), user.hashed_password)
         link = f"{settings.APP_BASE_URL.rstrip('/')}/reset-password?token={token}"
-        body = (
-            f"{user.username}님,\n\n"
-            f"SubFlow 비밀번호를 재설정하려면 아래 링크를 여세요.\n"
-            f"{link}\n\n"
-            f"이 링크는 {PASSWORD_RESET_EXPIRE_MINUTES}분 뒤 만료되며, 한 번만 쓸 수 있습니다.\n"
-            f"본인이 요청한 게 아니라면 이 메일을 무시하세요. 비밀번호는 그대로입니다.\n"
-        )
+        body = messages.reset_text(user.username, link, PASSWORD_RESET_EXPIRE_MINUTES)
         html = render_email(
-            heading="비밀번호 재설정",
+            heading=messages.RESET_HEADING,
             items=[(
-                f"{user.username}님, 아래 버튼으로 비밀번호를 새로 정하세요.",
-                f"링크는 {PASSWORD_RESET_EXPIRE_MINUTES}분 뒤 만료되며 한 번만 쓸 수 있습니다.",
+                messages.reset_item_title(user.username),
+                messages.reset_item_body(PASSWORD_RESET_EXPIRE_MINUTES),
             )],
-            cta_label="비밀번호 재설정하기",
+            cta_label=messages.RESET_CTA,
             cta_url=link,
-            footer="본인이 요청한 게 아니라면 이 메일을 무시하세요. 비밀번호는 그대로입니다.",
+            footer=messages.RESET_FOOTER,
         )
         sent = await send_email(
-            user.email, "[SubFlow] 비밀번호 재설정", body, html=html
+            user.email, messages.subject(messages.RESET_SUBJECT), body, html=html
         )
         if not sent:
             # SMTP 미설정(개발 환경)에서는 링크를 로그로 남겨 흐름을 확인할 수 있게 한다.

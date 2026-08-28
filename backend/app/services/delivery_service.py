@@ -6,6 +6,7 @@ import httpx
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import messages
 from app.config import settings
 from app.models.notification import Notification
 from app.models.notification_setting import NotificationSetting
@@ -125,17 +126,18 @@ async def send_email(
     try:
         import aiosmtplib
 
-        msg = EmailMessage()
-        msg["From"] = settings.SMTP_FROM
-        msg["To"] = to
-        msg["Subject"] = subject
-        msg.set_content(body)
+        # 변수명이 문구 모듈(messages)과 헷갈리지 않게 mail로 둔다
+        mail = EmailMessage()
+        mail["From"] = settings.SMTP_FROM
+        mail["To"] = to
+        mail["Subject"] = subject
+        mail.set_content(body)
         if html:
             # multipart/alternative — HTML을 못 그리는 클라이언트는 평문으로 떨어진다
-            msg.add_alternative(html, subtype="html")
+            mail.add_alternative(html, subtype="html")
 
         await aiosmtplib.send(
-            msg,
+            mail,
             hostname=settings.SMTP_HOST,
             port=settings.SMTP_PORT,
             username=settings.SMTP_USER or None,
@@ -152,18 +154,18 @@ async def send_email(
 def _build_message(pending: list[Notification]) -> tuple[str, str]:
     if len(pending) == 1:
         return pending[0].title, (pending[0].body or "")
-    title = f"{len(pending)}개의 새 알림이 있어요"
-    body = pending[0].title + f" 외 {len(pending) - 1}건"
+    title = messages.push_multi_title(len(pending))
+    body = messages.push_multi_body(pending[0].title, len(pending))
     return title, body
 
 
 def _email_body(pending: list[Notification]) -> str:
-    lines = ["SubFlow 새 알림", ""]
+    lines = [messages.MAIL_TEXT_HEADER, ""]
     for n in pending:
         lines.append(f"• {n.title}")
         if n.body:
             lines.append(f"  {n.body}")
-    lines += ["", "앱에서 자세히 확인하세요 — SubFlow"]
+    lines += ["", messages.MAIL_TEXT_FOOTER]
     return "\n".join(lines)
 
 
@@ -176,15 +178,15 @@ def _email_html(pending: list[Notification]) -> str:
         heading = n.title
         items: list[tuple[str, str | None]] = [(n.body, None)] if n.body else []
     else:
-        heading = f"새 알림 {len(pending)}건"
+        heading = messages.mail_multi_heading(len(pending))
         items = [(n.title, n.body) for n in pending]
 
     return render_email(
         heading=heading,
         items=items,
-        cta_label="SubFlow에서 열기",
+        cta_label=messages.MAIL_CTA,
         cta_url=settings.APP_BASE_URL,
-        footer="알림 설정은 앱의 설정 화면에서 바꿀 수 있습니다. 이 주소로는 회신할 수 없습니다.",
+        footer=messages.MAIL_FOOTER_NOTIFICATION,
     )
 
 
@@ -243,7 +245,7 @@ async def deliver_pending(db: AsyncSession) -> int:
             if user and user.email and user.email_verified:
                 if await send_email(
                     user.email,
-                    f"[SubFlow] {title}",
+                    messages.subject(title),
                     _email_body(pending),
                     html=_email_html(pending),
                 ):
