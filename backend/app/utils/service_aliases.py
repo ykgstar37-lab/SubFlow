@@ -75,6 +75,7 @@ SERVICE_ALIASES: dict[str, list[str]] = {
     # ── 사진·영상 ──
     "CapCut Pro": ["캡컷", "캡컷프로", "capcut", "캡컷 프로"],
     "SNOW VIP": ["스노우", "스노우vip", "snow", "스노우 vip"],
+    "VLLO": ["블로", "vllo", "브이엘엘오"],
     "KineMaster Premium": ["키네마스터", "키마", "kinemaster", "키네마스터 프리미엄"],
     "Vrew": ["브루", "vrew", "브루 자막"],
     "Adobe Lightroom": ["라이트룸", "어도비 라이트룸", "lightroom", "lr"],

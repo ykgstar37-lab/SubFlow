@@ -275,7 +275,10 @@ DEFAULT_SERVICES = {
             "website_url": "https://www.capcut.com/ko-kr",
             "is_popular": True,
             "plans": [
-                {"name": "월간", "price": 19800, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                # 한국 앱스토어 인앱결제 기준
+                {"name": "Standard 월간", "price": 9900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "Pro 월간", "price": 19800, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "연간", "price": 89000, "currency": "KRW", "billing_cycle": "YEARLY"},
             ],
         },
         {
@@ -285,7 +288,22 @@ DEFAULT_SERVICES = {
             "is_popular": True,
             "plans": [
                 # 통신사 제휴가(유독 4,000원 등)나 선물하기가는 더 싸다. 여기는 정가.
-                {"name": "VIP", "price": 11900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "VIP 월간", "price": 11900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "VIP 연간", "price": 46000, "currency": "KRW", "billing_cycle": "YEARLY"},
+            ],
+        },
+        {
+            "name": "VLLO",
+            "description": "쉬운 모바일 영상 편집기. 광고 제거와 프리미엄 템플릿",
+            "website_url": "https://www.vllo.io",
+            "is_popular": True,
+            "plans": [
+                # 한국 앱스토어 인앱결제 기준. 평생 이용권(45,000원)은 구독이
+                # 아니라 일회성 구매라 카탈로그에 싣지 않는다.
+                {"name": "주간 PLUS", "price": 2900, "currency": "KRW", "billing_cycle": "WEEKLY"},
+                {"name": "월간 프리미엄", "price": 4900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "월간 PLUS", "price": 6900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "연간 프리미엄", "price": 15000, "currency": "KRW", "billing_cycle": "YEARLY"},
             ],
         },
         {
