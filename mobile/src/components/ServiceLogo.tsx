@@ -114,12 +114,12 @@ const BRAND_BG: Record<string, { bg: string; text: string }> = {
   'Notion': { bg: '#2D2D2D', text: '#FFF' },
   'Slack': { bg: '#4A154B', text: '#FFF' },
   'CapCut Pro': { bg: '#000000', text: '#FFF' },
-  'SNOW VIP': { bg: '#FFE600', text: '#1A1A1A' },
-  'VLLO': { bg: '#2C6BED', text: '#FFF' },
-  'KineMaster Premium': { bg: '#E8402A', text: '#FFF' },
-  'Vrew': { bg: '#5B4DF5', text: '#FFF' },
+  'SNOW VIP': { bg: '#00CDF5', text: '#FFF' },
+  'VLLO': { bg: '#FE2959', text: '#FFF' },
+  'KineMaster Premium': { bg: '#FD473B', text: '#FFF' },
+  'Vrew': { bg: '#14A1C8', text: '#FFF' },
   'Adobe Lightroom': { bg: '#001E36', text: '#31A8FF' },
-  'Picsart Pro': { bg: '#C209C1', text: '#FFF' },
+  'Picsart Pro': { bg: '#CA0AC1', text: '#FFF' },
   'VSCO': { bg: '#000000', text: '#FFF' },
 };
 
