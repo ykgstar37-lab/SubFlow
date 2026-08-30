@@ -66,16 +66,31 @@ async def test_sends_mail_with_reporter_and_context(
     assert "android" in body and "1.0.0" in body and "catalog" in body
 
 
-async def test_short_message_is_rejected(
+async def test_short_message_is_accepted(
     test_client: httpx.AsyncClient,
     auth_headers: dict,
     captured_mail: list[dict],
 ):
-    """한두 글자짜리 신고는 받지 않는다 — 오발송이 대부분이다."""
+    """짧아도 받는다. 길이로 거르면 쓰려는 사람을 문턱에서 막는다."""
     resp = await test_client.post(
         "/api/v1/feedback",
         headers=auth_headers,
         json={"message": "음"},
+    )
+    assert resp.status_code == 200, resp.text
+    assert len(captured_mail) == 1
+
+
+async def test_empty_message_is_rejected(
+    test_client: httpx.AsyncClient,
+    auth_headers: dict,
+    captured_mail: list[dict],
+):
+    """빈 신고는 보낼 것이 없다."""
+    resp = await test_client.post(
+        "/api/v1/feedback",
+        headers=auth_headers,
+        json={"message": ""},
     )
     assert resp.status_code == 422
     assert captured_mail == []

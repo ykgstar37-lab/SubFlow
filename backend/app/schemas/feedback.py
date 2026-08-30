@@ -30,7 +30,9 @@ class FeedbackRequest(BaseModel):
     """
 
     type: FeedbackType = FeedbackType.BUG
-    message: str = Field(min_length=5, max_length=2000)
+    # 길이로 거르지 않는다. "안 됨" 세 글자여도 화면·기기 정보가 함께 오고,
+    # 무엇보다 쓰려는 사람을 문턱에서 막는 편이 손해다. 빈 값만 막는다.
+    message: str = Field(min_length=1, max_length=2000)
     # 자유 형식. 어떤 키가 오든 메일 본문에 그대로 적는다.
     # 값이 길어지면 메일이 못 읽게 되므로 개수와 길이는 서버에서 자른다.
     client: dict[str, str] = Field(default_factory=dict)

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert,
-  Modal, TextInput, Pressable, Linking, Platform, Image,
+  Modal, TextInput, Pressable, Linking, Platform, Image, Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -164,10 +164,8 @@ export default function SettingsScreen() {
   };
 
   const handleSendFeedback = async () => {
-    if (feedbackMessage.trim().length < 5) {
-      Alert.alert(language === 'ko' ? '내용을 조금만 더 적어주세요' : 'Please add a bit more detail');
-      return;
-    }
+    // 길이로 막지 않는다. 비어 있으면 보낼 게 없으니 버튼이 이미 꺼져 있다.
+    if (!feedbackMessage.trim()) return;
     setSendingFeedback(true);
     try {
       await feedbackAPI.send({
@@ -437,7 +435,7 @@ export default function SettingsScreen() {
             />
             <View style={styles.divider} />
             <SettingRow
-              icon="bug" iconColor="#FF3B30"
+              icon="chatbubble-ellipses" iconColor="#FF9500"
               title={language === 'ko' ? '오류 신고·의견 보내기' : 'Report a problem'}
               subtitle={language === 'ko' ? '불편한 점을 알려주시면 직접 확인합니다' : "Tell us what went wrong"}
               onPress={() => setFeedbackModalVisible(true)}
@@ -539,6 +537,11 @@ export default function SettingsScreen() {
               multiline
               maxLength={2000}
               textAlignVertical="top"
+              // 여러 줄 입력은 엔터가 줄바꿈이라 키보드가 안 내려가고, 그 키보드가
+              // 보내기 버튼을 가린다. 엔터로 닫히게 하고 키 모양도 '완료'로 바꾼다.
+              returnKeyType="done"
+              submitBehavior="blurAndSubmit"
+              onSubmitEditing={() => Keyboard.dismiss()}
               placeholder={language === 'ko' ? '내용을 적어주세요' : 'Describe the problem'}
               placeholderTextColor={Colors.textTertiary}
             />
@@ -584,9 +587,12 @@ export default function SettingsScreen() {
                 <Text style={modalStyles.btnCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[modalStyles.btn, modalStyles.btnSave, sendingFeedback && modalStyles.btnDisabled]}
+                style={[
+                  modalStyles.btn, modalStyles.btnSave,
+                  (sendingFeedback || !feedbackMessage.trim()) && modalStyles.btnDisabled,
+                ]}
                 onPress={handleSendFeedback}
-                disabled={sendingFeedback}
+                disabled={sendingFeedback || !feedbackMessage.trim()}
               >
                 <Text style={modalStyles.btnSaveText}>
                   {sendingFeedback
