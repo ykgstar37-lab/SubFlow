@@ -33,6 +33,10 @@ class Category(Base):
     icon: Mapped[str | None] = mapped_column(String(50), nullable=True)
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 화면에 뿌리는 순서. 생성 순(id)으로 두면 나중에 만든 분류가 늘 끝에 붙는다.
+    # 기본 카탈로그는 시드가 0부터 매기고, 사용자가 만든 분류는 기본값 1000이라
+    # 기본 분류 뒤에 그들끼리 만든 순서로 놓인다.
+    sort_order: Mapped[int] = mapped_column(Integer, default=1000, server_default="1000")
     # NULL = 모두에게 보이는 기본 카탈로그. 값이 있으면 그 사람만 보는 항목이다.
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True

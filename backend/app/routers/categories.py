@@ -23,7 +23,9 @@ async def list_categories(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Category).where(_visible_to(current_user)).order_by(Category.id)
+        select(Category)
+        .where(_visible_to(current_user))
+        .order_by(Category.sort_order, Category.id)
     )
     return result.scalars().all()
 

@@ -9,13 +9,14 @@ from app.models.service import Service
 from app.models.service_plan import ServicePlan
 from app.models.subscription import Subscription
 
+# 목록에 뿌리는 순서이기도 하다(sort_order를 여기 순서대로 매긴다).
 DEFAULT_CATEGORIES = [
+    {"name": "AI", "icon": "✨", "color": "#C96442", "is_default": True},
     {"name": "Entertainment", "icon": "🎬", "color": "#E50914", "is_default": True},
     {"name": "Music", "icon": "🎵", "color": "#1DB954", "is_default": True},
     {"name": "Photo & Video", "icon": "📸", "color": "#E1306C", "is_default": True},
     # AI 도구는 개발자만 쓰는 게 아니다. Developer Tools 안에 있으면 GPT·클로드를
     # 찾는 사람이 개발자 메뉴를 뒤져야 한다.
-    {"name": "AI", "icon": "✨", "color": "#C96442", "is_default": True},
     {"name": "Developer Tools", "icon": "💻", "color": "#6E40C9", "is_default": True},
     {"name": "Cloud/Infrastructure", "icon": "☁️", "color": "#FF9900", "is_default": True},
     {"name": "Productivity", "icon": "📋", "color": "#4285F4", "is_default": True},
@@ -1182,17 +1183,19 @@ async def seed_categories(db: AsyncSession) -> None:
     existing = {c.name: c for c in result.scalars().all()}
 
     changed = False
-    for cat_data in DEFAULT_CATEGORIES:
+    for order, cat_data in enumerate(DEFAULT_CATEGORIES):
         category = existing.get(cat_data["name"])
         if category is None:
-            db.add(Category(**cat_data))
+            db.add(Category(**cat_data, sort_order=order))
             changed = True
             continue
-        # 아이콘/색은 여기 값이 기준이다. 새로 만들 때만 반영하면 Education의 📚를
-        # Books에 넘겨주는 것 같은 변경이 기존 DB에는 영영 적용되지 않는다.
-        for field in ("icon", "color"):
-            if getattr(category, field) != cat_data[field]:
-                setattr(category, field, cat_data[field])
+        # 아이콘/색/순서는 여기 값이 기준이다. 새로 만들 때만 반영하면 Education의
+        # 📚를 Books에 넘겨주는 것 같은 변경이 기존 DB에는 영영 적용되지 않는다.
+        for field, value in (("icon", cat_data["icon"]),
+                             ("color", cat_data["color"]),
+                             ("sort_order", order)):
+            if getattr(category, field) != value:
+                setattr(category, field, value)
                 changed = True
     if changed:
         await db.commit()

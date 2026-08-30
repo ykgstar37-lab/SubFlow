@@ -94,9 +94,18 @@ async def test_multiple_missed_periods_record_each(test_db: AsyncSession):
     test_db.add(sub)
     await test_db.commit()
 
+    # 밀린 주기 수를 3으로 박아 두면 말일에 깨진다 — 31일에서 세 달을 빼면
+    # 5/31이고, 거기서 한 달씩 더하면 6/30 → 7/30 → 8/30이라 오늘(8/31)까지
+    # 네 번 돌기 때문이다. 말일 보정을 그대로 두고 기대값을 함께 센다.
+    expected, cursor = 0, start
+    while cursor < today:
+        cursor = _add_months(cursor, 1)
+        expected += 1
+    assert expected >= 3, "세 주기 이상 밀린 상황이어야 이 테스트가 뜻이 있다"
+
     recorded = await renew_due_subscriptions(test_db)
 
-    assert recorded == 3
+    assert recorded == expected
     await test_db.refresh(sub)
     assert sub.next_billing_date >= today
     # a single RENEWED history event summarising the catch-up
