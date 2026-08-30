@@ -441,14 +441,20 @@ export default function HomeScreen() {
                           </Text>
                         )}
                         {(() => {
+                          // 지출이라 뜻이 뒤집힌다 — 오르면 나쁜 소식(빨강),
+                          // 내리면 좋은 소식(초록). 절약 인사이트와 같은 기준이다.
+                          // 변동을 모르면 방향을 주장하지 않고 회색 가로줄만 둔다.
                           const change = priceChangeById[item.id];
-                          if (!change) return null;
-                          const wentUp = change > 0;
+                          const mark = !change
+                            ? { name: 'remove-circle' as const, color: Colors.textTertiary }
+                            : change > 0
+                              ? { name: 'arrow-up-circle' as const, color: Colors.danger }
+                              : { name: 'arrow-down-circle' as const, color: Colors.success };
                           return (
                             <Ionicons
-                              name={wentUp ? 'arrow-up-circle' : 'arrow-down-circle'}
+                              name={mark.name}
                               size={14}
-                              color={wentUp ? Colors.success : Colors.primary}
+                              color={mark.color}
                               style={{ marginLeft: 4 }}
                             />
                           );
