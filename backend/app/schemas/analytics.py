@@ -51,10 +51,22 @@ class SpendingTrend(BaseModel):
 
 
 # Feature 1: Overlap Detection
+class OverlapService(BaseModel):
+    """겹치는 구독 하나. 화면에서 바로 해지 페이지로 보내려면 주소가 필요하다."""
+
+    subscription_id: str
+    service_name: str
+    monthly_cost_krw: Decimal
+    cancel_url: str | None = None
+
+
 class OverlapItem(BaseModel):
     category: str
     category_icon: str | None = None
+    # 이름만 담은 예전 필드. 웹이 아직 이걸 쓰고 있어 그대로 둔다.
     services: list[str]
+    # 해지 페이지로 보내려면 이름만으로는 부족해서 따로 싣는다.
+    items: list[OverlapService] = []
     total_monthly_cost: Decimal
     message: str
 

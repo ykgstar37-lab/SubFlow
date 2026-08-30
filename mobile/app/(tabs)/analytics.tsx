@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Pressable, Animated,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,7 +14,7 @@ import { useAnalyticsOverview, useCategoryBreakdown, useSpendingTrend, useSaving
 import { ServiceLogo } from '../../src/components/ServiceLogo';
 import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { GradientButton } from '../../src/components/GradientButton';
-import { subscriptionAPI } from '../../src/services/api';
+import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors, Spacing, FontSize, FontWeight, Shadow, TabBarSpace } from '../../src/constants/theme';
 
 // ── 월별 추이 바 차트 (실제 데이터 + 이번 달 강조 + 라벨) ──
@@ -66,10 +67,11 @@ export default function AnalyticsScreen() {
   const savings = useSavingsSuggestions();
   const budget = useBudgetStatus();
   const overlaps = useOverlaps();
+  const setMonthlyBudget = useSettingsStore((st) => st.setMonthlyBudget);
 
   const isLoading = overview.loading;
-  const [applyingId, setApplyingId] = useState<string | null>(null);
-  const [confirmSub, setConfirmSub] = useState<any | null>(null);
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [budgetInput, setBudgetInput] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const toastAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -95,49 +97,35 @@ export default function AnalyticsScreen() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const refreshAfterApply = async () => {
-    await Promise.all([savings.refetch(), overview.refetch(), categories.refetch(), budget.refetch()]);
-  };
-
-  const handleApplySuggestion = (s: any) => {
-    if (!s.subscription_id || !s.action_type) {
-      setToast({
-        type: 'info',
-        text: '데모 데이터예요. 백엔드 연결 시 자동 적용됩니다.',
-      });
+  /** 제안한 요금제로 바꾸러 간다 — 구독 화면의 그 구독을 열고 요금제 목록까지 펼친다.
+   *  예전에는 눌렀을 때 우리 기록을 바로 고쳤는데, 실제 해지·변경은 그 서비스에서
+   *  해야 하므로 사용자가 직접 고르게 두는 편이 맞다. */
+  const goToPlanChange = (s: any) => {
+    if (!s.subscription_id) {
+      setToast({ type: 'info', text: '데모 데이터예요. 구독을 담으면 실제로 이동합니다.' });
       return;
     }
-    setConfirmSub(s);
+    router.push({
+      pathname: '/(tabs)/subscriptions',
+      params: { focus: String(s.subscription_id), plan: '1' },
+    });
   };
 
-  const cancelConfirm = () => setConfirmSub(null);
+  /** 겹치는 구독 하나의 해지 페이지를 연다. 주소를 모르는 서비스는 버튼을 감춘다. */
+  const openCancelPage = (url?: string | null) => {
+    if (!url) return;
+    Linking.openURL(url).catch(() =>
+      setToast({ type: 'error', text: '해지 페이지를 열지 못했어요.' })
+    );
+  };
 
-  const runApply = async () => {
-    const s = confirmSub;
-    if (!s) return;
-
-    // 외부 페이지는 사용자 클릭 직후 동기적으로 열어야 웹 팝업 차단을 피할 수 있음
-    if (s.action_url) {
-      try { Linking.openURL(s.action_url); } catch { /* ignore */ }
-    }
-
-    setConfirmSub(null);
-    setApplyingId(s.subscription_id);
-
-    try {
-      await subscriptionAPI.applySuggestion(s.subscription_id, {
-        action_type: s.action_type,
-        target_plan_id: s.target_plan_id,
-      });
-      await refreshAfterApply();
-      const cheapest = s.cheaper_plans?.[0];
-      const targetText = cheapest ? cheapest.plan_name : '추천 플랜';
-      setToast({ type: 'success', text: `${s.service_name} → ${targetText} 으로 갱신됨` });
-    } catch (e: any) {
-      setToast({ type: 'error', text: e?.response?.data?.detail ?? e?.message ?? '적용에 실패했어요.' });
-    } finally {
-      setApplyingId(null);
-    }
+  const saveBudget = () => {
+    const val = parseInt(budgetInput.replace(/[^0-9]/g, ''), 10);
+    if (!Number.isFinite(val) || val <= 0) return;
+    setMonthlyBudget(val);
+    setBudgetModalOpen(false);
+    // 서버에 저장한 값이 카드에 바로 보이도록 다시 읽는다
+    setTimeout(() => budget.refetch(), 300);
   };
 
   // 백엔드 필드명 → 모바일 필드명 매핑 (실데이터만)
@@ -382,7 +370,6 @@ export default function AnalyticsScreen() {
                 {savingsList.map((s: any, i: number) => {
                   const text = s.suggestion_text ?? s.message ?? '';
                   const saving = Number(s.max_savings_krw ?? 0);
-                  const isApplying = applyingId === s.subscription_id;
                   return (
                     <View key={i} style={styles.savingItem}>
                       <View style={styles.savingTop}>
@@ -415,12 +402,11 @@ export default function AnalyticsScreen() {
                       </View>
 
                       <GradientButton
-                        label="지금 적용"
-                        icon="flash"
+                        label="요금제 바꾸러 가기"
+                        icon="swap-horizontal"
                         variant="glass"
                         size="md"
-                        loading={isApplying}
-                        onPress={() => handleApplySuggestion(s)}
+                        onPress={() => goToPlanChange(s)}
                         style={{ marginTop: Spacing.sm }}
                       />
                     </View>
@@ -437,11 +423,37 @@ export default function AnalyticsScreen() {
                     </View>
                     <Text style={styles.overlapHint}>{t('analytics.overlapHint')}</Text>
                     {overlapsList.map((o: any, i: number) => (
-                      <View key={`overlap-${i}`} style={styles.overlapRow}>
-                        <View style={styles.overlapBadge}>
-                          <Text style={styles.overlapBadgeText}>{o.category}</Text>
+                      <View key={`overlap-${i}`}>
+                        <View style={styles.overlapRow}>
+                          <View style={styles.overlapBadge}>
+                            <Text style={styles.overlapBadgeText}>{o.category}</Text>
+                          </View>
+                          <Text style={styles.overlapMessage}>{o.message}</Text>
                         </View>
-                        <Text style={styles.overlapMessage}>{o.message}</Text>
+                        {/* 어느 걸 끊을지는 사람이 정한다. 비싼 것부터 보여주고,
+                            해지 주소를 아는 서비스만 바로 갈 수 있게 한다. */}
+                        {(o.items ?? []).map((it: any) => (
+                          <View key={it.subscription_id} style={styles.overlapItemRow}>
+                            <Text style={styles.overlapItemName} numberOfLines={1}>
+                              {it.service_name}
+                            </Text>
+                            <Text style={styles.overlapItemCost}>
+                              ₩{Number(it.monthly_cost_krw ?? 0).toLocaleString()}
+                            </Text>
+                            {it.cancel_url ? (
+                              <TouchableOpacity
+                                style={styles.overlapCancelBtn}
+                                onPress={() => openCancelPage(it.cancel_url)}
+                                activeOpacity={0.7}
+                              >
+                                <Ionicons name="open-outline" size={12} color={Colors.danger} />
+                                <Text style={styles.overlapCancelText}>해지</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <View style={styles.overlapCancelSpacer} />
+                            )}
+                          </View>
+                        ))}
                       </View>
                     ))}
                   </>
@@ -468,6 +480,17 @@ export default function AnalyticsScreen() {
                         <Ionicons name="wallet" size={20} color={Colors.textPrimary} />
                         <Text style={styles.cardTitle}>{t('settings.monthlyBudget')}</Text>
                       </View>
+                      {/* 예산을 고치려고 설정 탭까지 가야 했다. 보고 있는 자리에서 고친다. */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          setBudgetInput(budgetAmount ? String(budgetAmount) : '');
+                          setBudgetModalOpen(true);
+                        }}
+                        hitSlop={10}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="create-outline" size={18} color={Colors.textSecondary} />
+                      </TouchableOpacity>
                     </View>
                     <View style={styles.budgetBar}>
                       <View
@@ -682,54 +705,33 @@ export default function AnalyticsScreen() {
         </View>
       </Modal>
 
-      {/* ── 적용 확인 모달 ── */}
-      <Modal visible={!!confirmSub} transparent animationType="fade" onRequestClose={cancelConfirm}>
-        <Pressable style={styles.confirmOverlay} onPress={cancelConfirm}>
+      {/* ── 월 예산 수정 ── */}
+      <Modal visible={budgetModalOpen} transparent animationType="fade"
+             onRequestClose={() => setBudgetModalOpen(false)}>
+        <Pressable style={styles.confirmOverlay} onPress={() => setBudgetModalOpen(false)}>
           <Pressable style={styles.confirmSheet} onPress={(e) => e.stopPropagation()}>
             <View style={styles.confirmIconWrap}>
-              <Ionicons name="flash" size={28} color={Colors.primary} />
+              <Ionicons name="wallet" size={28} color={Colors.primary} />
             </View>
-            <Text style={styles.confirmTitle}>플랜 변경 적용</Text>
-            {confirmSub && (
-              <>
-                <Text style={styles.confirmBody}>
-                  <Text style={{ fontWeight: FontWeight.heavy }}>{confirmSub.service_name}</Text>
-                  {' → '}
-                  <Text style={{ fontWeight: FontWeight.heavy, color: Colors.primary }}>
-                    {confirmSub.cheaper_plans?.[0]?.plan_name ?? '추천 플랜'}
-                  </Text>
-                </Text>
-                {Number(confirmSub.max_savings_krw ?? 0) > 0 && (
-                  <View style={styles.confirmSavingPill}>
-                    <Ionicons name="arrow-down" size={11} color={Colors.success} />
-                    <Text style={styles.confirmSavingText}>
-                      월 ₩{Number(confirmSub.max_savings_krw).toLocaleString()} 절약
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.confirmHint}>
-                  ① {confirmSub.service_name} 관리 페이지를 새 창으로 열어드려요{'\n'}
-                  ② SubFlow에 새 플랜을 자동 반영합니다
-                </Text>
-              </>
-            )}
+            <Text style={styles.confirmTitle}>{t('settings.monthlyBudget')}</Text>
+            <TextInput
+              style={styles.budgetInput}
+              value={budgetInput}
+              onChangeText={setBudgetInput}
+              keyboardType="number-pad"
+              returnKeyType="done"
+              placeholder="100000"
+              placeholderTextColor={Colors.textTertiary}
+              autoFocus
+            />
             <View style={styles.confirmActions}>
               <View style={{ flex: 1 }}>
-                <GradientButton
-                  label="취소"
-                  variant="neutral"
-                  size="md"
-                  onPress={cancelConfirm}
-                />
+                <GradientButton label={t('common.cancel')} variant="neutral" size="md"
+                                onPress={() => setBudgetModalOpen(false)} />
               </View>
               <View style={{ flex: 1 }}>
-                <GradientButton
-                  label="열고 적용"
-                  icon="open-outline"
-                  variant="primary"
-                  size="md"
-                  onPress={runApply}
-                />
+                <GradientButton label={t('common.save')} variant="primary" size="md"
+                                onPress={saveBudget} />
               </View>
             </View>
           </Pressable>
@@ -930,6 +932,25 @@ const styles = StyleSheet.create({
   overlapRow: { marginTop: Spacing.sm },
   overlapBadge: { backgroundColor: Colors.danger + '15', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10, alignSelf: 'flex-start', marginBottom: 4 },
   overlapBadgeText: { fontSize: FontSize.xs, color: Colors.danger, fontWeight: FontWeight.bold },
+  overlapItemRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    paddingVertical: 6, paddingLeft: Spacing.sm,
+  },
+  overlapItemName: { flex: 1, fontSize: FontSize.sm, color: Colors.textPrimary },
+  overlapItemCost: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  overlapCancelBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
+    borderWidth: 1, borderColor: Colors.danger,
+  },
+  overlapCancelText: { fontSize: 11, color: Colors.danger, fontWeight: FontWeight.semibold },
+  overlapCancelSpacer: { width: 44 },
+  budgetInput: {
+    alignSelf: 'stretch', backgroundColor: Colors.surfaceLight,
+    borderWidth: 1, borderColor: Colors.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12, marginTop: Spacing.md,
+    fontSize: FontSize.lg, color: Colors.textPrimary, textAlign: 'center',
+  },
   overlapMessage: { fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20 },
   // ── 적용 확인 모달 ──
   confirmOverlay: {
@@ -947,18 +968,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   confirmTitle: { fontSize: FontSize.xl, fontWeight: FontWeight.heavy, color: Colors.textPrimary },
-  confirmBody: { fontSize: FontSize.md, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
-  confirmSavingPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#ECFDF5', borderRadius: 12,
-    paddingHorizontal: 12, paddingVertical: 6,
-    marginTop: 4,
-  },
-  confirmSavingText: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.success },
-  confirmHint: {
-    fontSize: FontSize.xs, color: Colors.textTertiary,
-    textAlign: 'center', lineHeight: 18, marginTop: 4,
-  },
   confirmActions: {
     flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.lg,
     alignSelf: 'stretch',

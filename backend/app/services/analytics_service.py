@@ -24,6 +24,7 @@ from app.schemas.analytics import (
     NextRenewalInfo,
     OverlapDetectionResponse,
     OverlapItem,
+    OverlapService,
     BudgetStatusResponse,
     SavingSuggestionItem,
     SavingsSuggestionsResponse,
@@ -46,7 +47,12 @@ class AnalyticsService:
     async def _get_active_subscriptions(self, user_id: UUID) -> list[Subscription]:
         result = await self.db.execute(
             select(Subscription)
-            .options(selectinload(Subscription.category))
+            # 해지 주소(Service.cancel_url)까지 읽는다. 안 읽어 두면 나중에
+            # 접근하는 순간 async 세션에서 lazy load가 터진다.
+            .options(
+                selectinload(Subscription.category),
+                selectinload(Subscription.service),
+            )
             .where(
                 Subscription.user_id == user_id,
                 Subscription.status == SubscriptionStatus.ACTIVE,
@@ -207,14 +213,26 @@ class AnalyticsService:
             service_names = [s.service_name for s in cat_subs]
 
             total_monthly = Decimal("0")
+            items: list[OverlapService] = []
             for s in cat_subs:
                 monthly_krw = await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency)
                 total_monthly += monthly_krw
+                items.append(OverlapService(
+                    subscription_id=str(s.id),
+                    service_name=s.service_name,
+                    monthly_cost_krw=monthly_krw.quantize(Decimal("1")),
+                    # 카탈로그에서 담은 구독만 해지 주소를 안다. 직접 등록한
+                    # 구독은 None이고, 화면에서는 그 버튼을 감춘다.
+                    cancel_url=s.service.cancel_url if s.service else None,
+                ))
+            # 비싼 것부터 보여준다 — 끊을지 고민할 때 먼저 보게 되는 값이다.
+            items.sort(key=lambda x: x.monthly_cost_krw, reverse=True)
 
             overlaps.append(OverlapItem(
                 category=cat_name,
                 category_icon=cat_icon,
                 services=service_names,
+                items=items,
                 total_monthly_cost=total_monthly.quantize(Decimal("1")),
                 message=f"'{cat_name}' 카테고리에 {len(cat_subs)}개의 구독이 있습니다. 통합을 고려해보세요.",
             ))

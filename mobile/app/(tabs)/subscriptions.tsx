@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Animated, Pressable, Alert, Linking, Share, PanResponder, Dimensions, Modal,
@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useTranslation } from '../../src/hooks/useTranslation';
@@ -211,6 +211,11 @@ export default function SubscriptionsScreen() {
   const naiveTotal = allSubs.filter(s => s.status === 'active').reduce((sum, s) => sum + s.amount, 0);
   const monthlyTotalKRW = Number((overviewQuery.data as any)?.total_monthly_cost ?? naiveTotal);
 
+  // 절약 인사이트에서 "요금제 바꾸기"를 누르면 이 화면으로 보내면서
+  // 어떤 구독을 열지 알려준다. 목록이 아직 안 왔으면 다음 렌더에서 다시 본다.
+  const params = useLocalSearchParams<{ focus?: string; plan?: string }>();
+  const handledFocus = useRef<string | null>(null);
+
   const openModal = (sub: Sub) => {
     setSelectedSub(sub);
     setEditDate(sub.nextDate);
@@ -255,6 +260,17 @@ export default function SubscriptionsScreen() {
       Animated.spring(slideAnim, { toValue: 0, damping: 25, stiffness: 300, useNativeDriver: true }),
     ]).start();
   };
+
+  useEffect(() => {
+    const id = typeof params.focus === 'string' ? params.focus : undefined;
+    if (!id || handledFocus.current === id) return;
+    const target = allSubs.find((s) => s.id === id);
+    if (!target) return;
+    handledFocus.current = id;
+    openModal(target);
+    // openModal이 요금제 선택을 닫으므로 그 뒤에 연다
+    if (params.plan === '1') setPlanPickerVisible(true);
+  }, [params.focus, params.plan, allSubs]);
 
   const closeModal = () => {
     Animated.parallel([
