@@ -1,5 +1,4 @@
 import type {
-  PlanPriceHistory,
   Service,
   ServiceCreateRequest,
   ServiceListItem,
@@ -24,11 +23,6 @@ export const serviceApi = {
 
   getById: (id: number) =>
     apiClient.get<Service>(`/services/${id}`).then((r) => r.data),
-
-  getPriceHistory: (serviceId: number) =>
-    apiClient
-      .get<Record<number, PlanPriceHistory[]>>(`/services/${serviceId}/price-history`)
-      .then((r) => r.data),
 
   create: (data: ServiceCreateRequest) =>
     apiClient.post<Service>("/services", data).then((r) => r.data),

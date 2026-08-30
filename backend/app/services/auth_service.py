@@ -15,6 +15,7 @@ from app.core.security import (
     create_email_verify_token,
     create_password_reset_token,
     create_refresh_token,
+    password_fingerprint,
     decode_email_verify_token,
     decode_password_reset_token,
     decode_token,
@@ -188,7 +189,9 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 
         access_token = create_access_token(data={"sub": str(user.id)})
-        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        refresh_token = create_refresh_token(
+            data={"sub": str(user.id), "pwf": password_fingerprint(user.hashed_password)}
+        )
 
         return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
@@ -204,8 +207,17 @@ class AuthService:
         if not user or not user.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
+        # 비밀번호가 바뀌었으면 예전 토큰으로는 더 못 들어온다. 기기를 잃어버렸을 때
+        # 비밀번호만 바꾸면 그 기기의 로그인이 끊긴다.
+        if payload.get("pwf") != password_fingerprint(user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+            )
+
         new_access_token = create_access_token(data={"sub": str(user.id)})
-        new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        new_refresh_token = create_refresh_token(
+            data={"sub": str(user.id), "pwf": password_fingerprint(user.hashed_password)}
+        )
 
         return TokenResponse(access_token=new_access_token, refresh_token=new_refresh_token)
 

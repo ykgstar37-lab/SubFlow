@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert,
   Modal, TextInput, Pressable, Linking, Platform, Image, Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,7 +61,7 @@ const CURRENCIES = [
 const DAYS_OPTIONS = [1, 2, 3, 5, 7];
 
 export default function SettingsScreen() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
   const {
     language, setLanguage,
     pushEnabled, setPushEnabled,
@@ -70,6 +71,9 @@ export default function SettingsScreen() {
     currency, setCurrency,
   } = useSettingsStore();
   const syncFromServer = useSettingsStore((st) => st.syncFromServer);
+  const [profileModalVisible, setProfileModalVisible] = React.useState(false);
+  const [nameInput, setNameInput] = React.useState('');
+  const [savingName, setSavingName] = React.useState(false);
   const budgetAlerts = useSettingsStore((st) => st.budgetAlerts);
   const setBudgetAlerts = useSettingsStore((st) => st.setBudgetAlerts);
   const fxAlerts = useSettingsStore((st) => st.fxAlerts);
@@ -255,6 +259,21 @@ export default function SettingsScreen() {
     setBudgetModalVisible(false);
   };
 
+  const saveName = async () => {
+    const name = nameInput.trim();
+    if (!name || name === user?.username) { setProfileModalVisible(false); return; }
+    setSavingName(true);
+    try {
+      const res = await authAPI.updateMe({ username: name });
+      setUser(res.data);
+      setProfileModalVisible(false);
+    } catch {
+      Alert.alert(language === 'ko' ? '이름을 바꾸지 못했어요' : 'Could not change the name');
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   const handleAlertTiming = () => {
     const options = DAYS_OPTIONS.map(d =>
       language === 'ko' ? `결제 ${d}일 전` : `${d} days before`
@@ -306,15 +325,13 @@ export default function SettingsScreen() {
                 <Text style={styles.profileName}>{user?.username ?? 'User'}</Text>
                 <Text style={styles.profileEmail}>{user?.email ?? 'user@example.com'}</Text>
               </View>
+              {/* 웹은 이름을 고칠 수 있는데 앱은 지금 값을 읽어 주기만 했다. */}
               <TouchableOpacity
                 style={styles.editBtn}
-                onPress={() => Alert.alert(
-                  language === 'ko' ? '프로필 편집' : 'Edit Profile',
-                  language === 'ko'
-                    ? `이름: ${user?.username ?? '-'}\n이메일: ${user?.email ?? '-'}`
-                    : `Name: ${user?.username ?? '-'}\nEmail: ${user?.email ?? '-'}`,
-                  [{ text: language === 'ko' ? '확인' : 'OK' }]
-                )}
+                onPress={() => {
+                  setNameInput(user?.username ?? '');
+                  setProfileModalVisible(true);
+                }}
               >
                 <Ionicons name="create-outline" size={18} color={Colors.primary} />
               </TouchableOpacity>
@@ -613,6 +630,49 @@ export default function SettingsScreen() {
         </Pressable>
       </Modal>
 
+      {/* 프로필 편집 */}
+      <Modal transparent animationType="fade" visible={profileModalVisible}
+             onRequestClose={() => setProfileModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={modalStyles.overlay} onPress={() => setProfileModalVisible(false)}>
+            <Pressable style={modalStyles.box} onPress={() => Keyboard.dismiss()}>
+              <Text style={modalStyles.title}>
+                {language === 'ko' ? '이름 바꾸기' : 'Change name'}
+              </Text>
+              <Text style={modalStyles.subtitle}>
+                {language === 'ko'
+                  ? '앱과 웹, 알림 메일에 함께 쓰이는 이름입니다.'
+                  : 'This name is used across the app, the web and notification emails.'}
+              </Text>
+              <TextInput
+                style={modalStyles.nameInput}
+                value={nameInput}
+                onChangeText={setNameInput}
+                maxLength={100}
+                returnKeyType="done"
+                onSubmitEditing={saveName}
+                placeholder={language === 'ko' ? '이름' : 'Name'}
+                placeholderTextColor={Colors.textTertiary}
+                autoFocus
+              />
+              <View style={modalStyles.btnRow}>
+                <TouchableOpacity style={[modalStyles.btn, modalStyles.btnCancel]}
+                                  onPress={() => setProfileModalVisible(false)}>
+                  <Text style={modalStyles.btnCancelText}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[modalStyles.btn, modalStyles.btnSave, (savingName || !nameInput.trim()) && modalStyles.btnDisabled]}
+                  onPress={saveName}
+                  disabled={savingName || !nameInput.trim()}
+                >
+                  <Text style={modalStyles.btnSaveText}>{t('common.save')}</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* 계정 삭제 확인 모달 */}
       <Modal transparent animationType="fade" visible={deleteModalVisible} onRequestClose={() => setDeleteModalVisible(false)}>
         <Pressable style={modalStyles.overlay} onPress={() => setDeleteModalVisible(false)}>
@@ -759,6 +819,12 @@ const modalStyles = StyleSheet.create({
   subtitle: {
     fontSize: FontSize.sm, color: Colors.textTertiary,
     marginBottom: Spacing.lg,
+  },
+  nameInput: {
+    marginTop: 14, backgroundColor: Colors.surfaceLight,
+    borderWidth: 1, borderColor: Colors.border, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: FontSize.md, color: Colors.textPrimary,
   },
   inputRow: {
     flexDirection: 'row', alignItems: 'center',

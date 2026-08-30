@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
@@ -21,6 +22,16 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def password_fingerprint(password_hash: str) -> str:
+    """비밀번호 해시를 짧게 줄인 값. 리프레시 토큰에 함께 넣어 둔다.
+
+    리프레시 토큰은 따로 보관하지 않는 JWT라 한 번 새 나가면 만료까지 막을
+    방법이 없다. 지문을 심어 두면 비밀번호를 바꾸는 순간 기존 토큰이 전부
+    무효가 된다 — 기기를 잃어버렸을 때 손쓸 수 있는 유일한 수단이다.
+    """
+    return hashlib.sha256(password_hash.encode()).hexdigest()[:16]
 
 
 def create_refresh_token(data: dict) -> str:

@@ -32,18 +32,55 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// 401 발생 시 토큰 정리 + 로그인 화면으로 자동 이동 (반복 알림 방지를 위해 디바운스)
+// 액세스 토큰은 30분이면 만료된다. 지금까지는 그때마다 로그인 화면으로 쫓아냈다
+// — 결제일 알림을 보고 여는 앱이라 대부분 만료된 뒤에 열게 되니, 사실상 열 때마다
+// 다시 로그인해야 했다. 웹처럼 리프레시 토큰으로 조용히 갱신하고 원래 요청을
+// 다시 보낸다. 갱신까지 실패했을 때만 로그인 화면으로 보낸다.
+let refreshing: Promise<string | null> | null = null;
 let lastAuthRedirect = 0;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = await AsyncStorage.getItem('refresh_token');
+  if (!refreshToken) return null;
+  try {
+    // 갱신 요청 자체는 인터셉터를 타지 않는 별도 인스턴스로 보낸다(무한 루프 방지)
+    const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refresh_token: refreshToken });
+    const { access_token, refresh_token } = res.data ?? {};
+    if (!access_token) return null;
+    await AsyncStorage.setItem('access_token', access_token);
+    // 갱신할 때마다 새 리프레시 토큰이 나온다. 갈아 끼워야 기한이 밀린다.
+    if (refresh_token) await AsyncStorage.setItem('refresh_token', refresh_token);
+    return access_token;
+  } catch {
+    return null;
+  }
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('access_token');
-      // /auth/login 호출 자체의 401(잘못된 비번)은 redirect 안 함
-      const url: string | undefined = error.config?.url;
-      const isLoginCall = url?.includes('/auth/login') || url?.includes('/auth/register');
+    const original: any = error.config ?? {};
+    const url: string | undefined = original.url;
+    const isAuthCall =
+      url?.includes('/auth/login') ||
+      url?.includes('/auth/register') ||
+      url?.includes('/auth/refresh');
+
+    if (error.response?.status === 401 && !isAuthCall && !original._retried) {
+      original._retried = true;
+      // 동시에 여러 요청이 401을 맞아도 갱신은 한 번만 한다
+      refreshing = refreshing ?? refreshAccessToken().finally(() => { refreshing = null; });
+      const token = await refreshing;
+      if (token) {
+        original.headers = { ...(original.headers ?? {}), Authorization: `Bearer ${token}` };
+        return api(original);
+      }
+    }
+
+    if (error.response?.status === 401 && !isAuthCall) {
+      await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
       const now = Date.now();
-      if (!isLoginCall && now - lastAuthRedirect > 1500) {
+      if (now - lastAuthRedirect > 1500) {
         lastAuthRedirect = now;
         try { router.replace('/(auth)/login'); } catch { /* router 미준비 시 무시 */ }
       }
@@ -61,6 +98,7 @@ export const authAPI = {
   register: (email: string, password: string, username: string) =>
     api.post('/auth/register', { email, password, username }),
   getMe: () => api.get('/auth/me'),
+  updateMe: (data: { username?: string }) => api.put('/auth/me', data),
   // 계정 삭제 — 본문에 비밀번호를 실어 보낸다 (axios는 delete에 data 지원)
   deleteAccount: (password: string) => api.delete('/auth/me', { data: { password } }),
   // 재설정 메일 요청. 가입 여부와 무관하게 항상 성공으로 답한다(가입자 명단이 새지 않도록).
@@ -86,8 +124,6 @@ export const subscriptionAPI = {
   }) => api.post('/subscriptions/from-catalog', data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/subscriptions/${id}`, data),
   cancel: (id: string) => api.delete(`/subscriptions/${id}`),
-  applySuggestion: (id: string, data: { action_type: 'downgrade' | 'cancel' | 'switch_billing'; target_plan_id?: number }) =>
-    api.post(`/subscriptions/${id}/apply-suggestion`, data),
   getUpcoming: () => api.get('/subscriptions/upcoming'),
   getCalendarEvents: (year: number, month: number) =>
     api.get(`/subscriptions/calendar-events?year=${year}&month=${month}`),

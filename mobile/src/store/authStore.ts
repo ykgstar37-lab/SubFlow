@@ -18,6 +18,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: User) => void;
   loadToken: () => Promise<void>;
 }
 
@@ -39,15 +40,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: false });
       }
     } catch {
-      await AsyncStorage.removeItem('access_token');
+      await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
       set({ token: null, user: null, isAuthenticated: false, isLoading: false });
     }
   },
 
   login: async (email: string, password: string) => {
     const res = await authAPI.login(email, password);
-    const { access_token } = res.data;
+    const { access_token, refresh_token } = res.data;
+    // 리프레시 토큰을 받고도 버리고 있었다. 그래서 30분 뒤 액세스 토큰이
+    // 만료되면 갱신할 방법이 없어 그대로 로그아웃됐다.
     await AsyncStorage.setItem('access_token', access_token);
+    if (refresh_token) await AsyncStorage.setItem('refresh_token', refresh_token);
 
     // 유저 정보 가져오기
     const userRes = await api.get('/auth/me');
@@ -61,8 +65,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().login(email, password);
   },
 
+  setUser: (user) => set({ user }),
+
   logout: async () => {
-    await AsyncStorage.removeItem('access_token');
+    await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
     set({ token: null, user: null, isAuthenticated: false });
   },
 }));
