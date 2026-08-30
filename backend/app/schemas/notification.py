@@ -40,6 +40,7 @@ class NotificationSettingsResponse(BaseModel):
     email_notifications: bool
     push_notifications: bool
     budget_monthly: int | None = None
+    budget_alerts: bool = True
     # 푸시를 켜 두어도 기기 토큰이 없으면 아무것도 못 보낸다. 웹에서 켜 놓고
     # 왜 안 오는지 모르는 상황을 없애려고 연결 여부만 알려 준다(토큰은 감춘다).
     push_device_connected: bool = False
@@ -52,3 +53,4 @@ class NotificationSettingsUpdateRequest(BaseModel):
     email_notifications: bool | None = None
     push_notifications: bool | None = None
     budget_monthly: int | None = None
+    budget_alerts: bool | None = None

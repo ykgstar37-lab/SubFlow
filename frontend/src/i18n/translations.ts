@@ -460,6 +460,11 @@ const EN: Record<string, string> = {
   "요금제 삭제에 실패했습니다.": "Could not delete the plan.",
   "'{name}' 요금제를 삭제하시겠습니까?": "Delete the plan '{name}'?",
 
+  // ── 예산 알림 ──
+  "예산의 80%를 넘으면 알려주기": "Notify me when I pass 80% of the budget",
+  "끄면 예산은 그대로 두고 알림만 오지 않습니다. 저장을 눌러야 반영됩니다.":
+    "Turn this off to keep the budget but stop the alerts. Press Save to apply.",
+
   // ── 부가세 ──
   "부가세 별도": "+VAT",
   "부가세 포함 {amount}": "{amount} with VAT",

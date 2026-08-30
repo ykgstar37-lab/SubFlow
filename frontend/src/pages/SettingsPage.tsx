@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [notifyDays, setNotifyDays] = useState(3);
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(false);
+  const [budgetAlerts, setBudgetAlerts] = useState(true);
   const [budgetMonthly, setBudgetMonthly] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +39,7 @@ export default function SettingsPage() {
         setNotifyDays(settings.notify_days_before);
         setEmailNotif(settings.email_notifications);
         setPushNotif(settings.push_notifications);
+        setBudgetAlerts(settings.budget_alerts ?? true);
         setBudgetMonthly(settings.budget_monthly != null ? withCommas(String(settings.budget_monthly)) : "");
       })
       .catch(() => {
@@ -145,7 +147,10 @@ export default function SettingsPage() {
         setSaving(false);
         return;
       }
-      const updated = await notificationApi.updateSettings({ budget_monthly: value });
+      const updated = await notificationApi.updateSettings({
+        budget_monthly: value,
+        budget_alerts: budgetAlerts,
+      });
       setNotifSettings(updated);
       setBudgetMonthly(updated.budget_monthly != null ? withCommas(String(updated.budget_monthly)) : "");
       toast.success(tr("예산이 저장되었습니다."));
@@ -323,6 +328,23 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+
+          {/* 예산은 보고 싶은데 알림은 싫은 경우가 있다. 예산을 지우지 않고
+              알림만 끌 수 있게 둔다. 앱과 같은 값을 본다. */}
+          <label className="mt-4 flex items-start gap-2">
+            <input
+              type="checkbox"
+              checked={budgetAlerts}
+              onChange={(e) => setBudgetAlerts(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm text-slate-500">
+              {tr("예산의 80%를 넘으면 알려주기")}
+              <span className="mt-0.5 block text-xs text-slate-400">
+                {tr("끄면 예산은 그대로 두고 알림만 오지 않습니다. 저장을 눌러야 반영됩니다.")}
+              </span>
+            </span>
+          </label>
         </section>
 
         <section className="glass p-6">

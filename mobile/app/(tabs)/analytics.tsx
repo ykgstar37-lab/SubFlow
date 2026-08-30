@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, Pressable, Animated,
   TextInput,
+  KeyboardAvoidingView, Keyboard, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -727,8 +728,14 @@ export default function AnalyticsScreen() {
       {/* ── 월 예산 수정 ── */}
       <Modal visible={budgetModalOpen} transparent animationType="fade"
              onRequestClose={() => setBudgetModalOpen(false)}>
+        {/* 숫자 키패드에는 엔터가 없다. 시트를 키보드 위로 올리고, 입력칸 밖을
+            누르면 닫히게 해야 저장 버튼에 손이 닿는다. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
         <Pressable style={styles.confirmOverlay} onPress={() => setBudgetModalOpen(false)}>
-          <Pressable style={styles.confirmSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={styles.confirmSheet} onPress={() => Keyboard.dismiss()}>
             <View style={styles.confirmIconWrap}>
               <Ionicons name="wallet" size={28} color={Colors.primary} />
             </View>
@@ -738,7 +745,6 @@ export default function AnalyticsScreen() {
               value={budgetInput}
               onChangeText={setBudgetInput}
               keyboardType="number-pad"
-              returnKeyType="done"
               placeholder="100000"
               placeholderTextColor={Colors.textTertiary}
               autoFocus
@@ -755,6 +761,7 @@ export default function AnalyticsScreen() {
             </View>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── 토스트 ── */}

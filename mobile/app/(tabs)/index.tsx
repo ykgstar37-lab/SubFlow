@@ -12,6 +12,7 @@ import {
   TextInput,
   Animated,
   Alert,
+  KeyboardAvoidingView, Keyboard, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -174,7 +175,7 @@ export default function HomeScreen() {
     AsyncStorage.setItem('subflow-onboarded', '1').catch(() => {});
     setShowOnboarding(false);
   };
-  const { monthlyBudget, setMonthlyBudget } = useSettingsStore();
+  const { monthlyBudget, setMonthlyBudget, syncFromServer } = useSettingsStore();
   const subsQuery = useSubscriptions();
   const overviewQuery = useAnalyticsOverview();
   const exchangeQuery = useExchangeRateAlerts();
@@ -189,7 +190,10 @@ export default function HomeScreen() {
   useFocusEffect(
     React.useCallback(() => {
       refetchInbox();
-    }, [refetchInbox])
+      // 알림 설정과 예산은 계정에 딸린 값이라 웹에서 바꿀 수도 있다. 지금까지는
+      // 설정 탭을 들러야만 갱신돼서, 웹에서 예산을 바꿔도 홈은 옛 값을 보여줬다.
+      syncFromServer();
+    }, [refetchInbox, syncFromServer])
   );
 
   // ── 구독 브리핑 '새 소식' 점 ──
@@ -636,8 +640,15 @@ export default function HomeScreen() {
 
       {/* ── 월 예산 설정 모달 ── */}
       <Modal visible={budgetModalVisible} transparent animationType="fade" onRequestClose={() => setBudgetModalVisible(false)}>
+        {/* 숫자 키패드에는 엔터가 없어서, 키보드가 저장 버튼을 가리면 저장할
+            방법이 아예 없었다. 시트를 키보드 위로 밀어 올리고, 입력칸 밖을
+            누르면 키보드가 닫히게 한다. */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
         <Pressable style={budgetStyles.overlay} onPress={() => setBudgetModalVisible(false)}>
-          <Pressable style={budgetStyles.sheet} onPress={e => e.stopPropagation()}>
+          <Pressable style={budgetStyles.sheet} onPress={() => Keyboard.dismiss()}>
             <View style={budgetStyles.handle} />
             <Text style={budgetStyles.title}>
               {language === 'ko' ? '월 예산 설정' : 'Set Monthly Budget'}
@@ -688,6 +699,7 @@ export default function HomeScreen() {
             />
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </LinearGradient>
   );

@@ -348,8 +348,16 @@ class NotificationService:
         await self.db.commit()
 
     async def sync_budget_notifications(self, user_id: UUID) -> None:
-        """월 예산 초과 알림 (월 1회)."""
+        """월 예산 초과 알림 (월 1회). 사용자가 꺼 두었으면 만들지 않는다."""
         from app.services.analytics_service import AnalyticsService
+
+        setting = (
+            await self.db.execute(
+                select(NotificationSetting).where(NotificationSetting.user_id == user_id)
+            )
+        ).scalar_one_or_none()
+        if setting is not None and not setting.budget_alerts:
+            return
 
         status_ = await AnalyticsService(self.db).get_budget_status(user_id)
         if not status_.is_over_budget or status_.budget_monthly is None:

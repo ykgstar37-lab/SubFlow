@@ -70,6 +70,8 @@ export default function SettingsScreen() {
     currency, setCurrency,
   } = useSettingsStore();
   const syncFromServer = useSettingsStore((st) => st.syncFromServer);
+  const budgetAlerts = useSettingsStore((st) => st.budgetAlerts);
+  const setBudgetAlerts = useSettingsStore((st) => st.setBudgetAlerts);
   const { t } = useTranslation();
 
   // 이 화면을 열 때마다 서버 값을 다시 읽는다. 웹에서 앱 연동을 켜 두면
@@ -377,17 +379,16 @@ export default function SettingsScreen() {
               onPress={openBudgetModal}
             />
             <View style={styles.divider} />
+            {/* 안내만 띄우고 끌 수는 없었다. 예산은 보고 싶은데 알림은 싫은
+                사람이 예산을 지우는 것 말고는 방법이 없었다. */}
             <SettingRow
               icon="alert-circle" iconColor="#FF3B30"
               title={t('settings.budgetAlert')}
               subtitle={t('settings.budgetAlertDesc')}
-              onPress={() => Alert.alert(
-                language === 'ko' ? '예산 초과 알림' : 'Budget Alert',
-                language === 'ko'
-                  ? `월 예산의 80% 도달 시 알림이 발송됩니다.\n현재 예산: ${monthlyBudget ? `₩${monthlyBudget.toLocaleString()}` : '미설정'}`
-                  : `You'll be notified when you reach 80% of your budget.\nCurrent budget: ${monthlyBudget ? `₩${monthlyBudget.toLocaleString()}` : 'Not set'}`,
-                [{ text: language === 'ko' ? '확인' : 'OK' }]
-              )}
+              rightElement={
+                <Switch value={budgetAlerts} onValueChange={setBudgetAlerts}
+                  trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor={Colors.surface} />
+              }
             />
           </Card>
 
