@@ -21,6 +21,9 @@ class NotificationSetting(Base):
     # 예산 초과 알림만 따로 끌 수 있게 한다. 예산은 보고 싶은데 알림은 싫은
     # 사람이 있는데, 지금까지는 예산을 지우는 것 말고는 끌 방법이 없었다.
     budget_alerts: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # 환율 변동 알림도 마찬가지. 외화 구독이 없는 사람에게는 올 일이 없지만,
+    # 있는 사람은 오르내릴 때마다 받게 되므로 끌 수 있어야 한다.
+    fx_alerts: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     push_token: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)  # Expo 푸시 토큰
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

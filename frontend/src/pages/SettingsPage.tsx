@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(false);
   const [budgetAlerts, setBudgetAlerts] = useState(true);
+  const [fxAlerts, setFxAlerts] = useState(true);
   const [budgetMonthly, setBudgetMonthly] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -40,6 +41,7 @@ export default function SettingsPage() {
         setEmailNotif(settings.email_notifications);
         setPushNotif(settings.push_notifications);
         setBudgetAlerts(settings.budget_alerts ?? true);
+        setFxAlerts(settings.fx_alerts ?? true);
         setBudgetMonthly(settings.budget_monthly != null ? withCommas(String(settings.budget_monthly)) : "");
       })
       .catch(() => {
@@ -127,6 +129,7 @@ export default function SettingsPage() {
         notify_days_before: notifyDays,
         email_notifications: emailNotif,
         push_notifications: pushNotif,
+        fx_alerts: fxAlerts,
       });
       setNotifSettings(updated);
       toast.success(tr("알림 설정이 저장되었습니다."));
@@ -271,6 +274,18 @@ export default function SettingsPage() {
                 </div>
                 {/* 켜 두어도 기기가 붙어 있지 않으면 아무것도 못 간다.
                     왜 안 오는지 모르는 상태로 두지 않는다. */}
+                {/* 외화 구독이 없으면 올 일이 없지만, 있는 사람은 오르내릴 때마다
+                    받게 되므로 끌 수 있어야 한다. 앱과 같은 값을 본다. */}
+                <label className="mt-3 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={fxAlerts}
+                    onChange={(e) => setFxAlerts(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-slate-500">{tr("외화 구독 환율 변동 알림 받기")}</span>
+                </label>
+
                 {pushNotif && notifSettings && !notifSettings.push_device_connected && (
                   <p className="mt-2 text-xs text-amber-600">
                     {tr("휴대폰에서 SubFlow 앱에 로그인하면 이 기기로 알림이 갑니다.")}

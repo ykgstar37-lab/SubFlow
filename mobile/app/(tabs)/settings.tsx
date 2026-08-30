@@ -72,6 +72,8 @@ export default function SettingsScreen() {
   const syncFromServer = useSettingsStore((st) => st.syncFromServer);
   const budgetAlerts = useSettingsStore((st) => st.budgetAlerts);
   const setBudgetAlerts = useSettingsStore((st) => st.setBudgetAlerts);
+  const fxAlerts = useSettingsStore((st) => st.fxAlerts);
+  const setFxAlerts = useSettingsStore((st) => st.setFxAlerts);
   const { t } = useTranslation();
 
   // 이 화면을 열 때마다 서버 값을 다시 읽는다. 웹에서 앱 연동을 켜 두면
@@ -341,6 +343,18 @@ export default function SettingsScreen() {
                   trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor={Colors.surface} />
               }
             />
+            <View style={styles.divider} />
+            {/* 설정 행인데 분석 화면으로 보내기만 하고(그쪽엔 환율 얘기가 없다)
+                끄지도 못했다. 실제로 푸시·메일로 나가는 알림이라 여기 둔다. */}
+            <SettingRow
+              icon="swap-horizontal" iconColor="#FF9500"
+              title={t('settings.exchangeRate')}
+              subtitle={t('settings.exchangeDesc')}
+              rightElement={
+                <Switch value={fxAlerts} onValueChange={setFxAlerts}
+                  trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor={Colors.surface} />
+              }
+            />
             {/* 인증되지 않은 주소로는 알림 메일을 보내지 않는다. 켜 두고 왜 안
                 오는지 모르는 상태를 없애려고, 미인증일 때만 이 줄을 띄운다. */}
             {user && (user as any).email_verified === false && (
@@ -414,13 +428,6 @@ export default function SettingsScreen() {
               title={t('settings.currency')}
               subtitle={`${currency} (${CURRENCIES.find(c => c.code === currency)?.symbol ?? currency})`}
               onPress={() => setCurrencyModalVisible(true)}
-            />
-            <View style={styles.divider} />
-            <SettingRow
-              icon="swap-horizontal" iconColor="#FF9500"
-              title={t('settings.exchangeRate')}
-              subtitle={t('settings.exchangeDesc')}
-              onPress={() => router.push('/(tabs)/analytics')}
             />
             <View style={styles.divider} />
             <SettingRow

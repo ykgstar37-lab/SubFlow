@@ -11,6 +11,7 @@ interface SettingsState {
   daysBefore: number;
   monthlyBudget: number | null;
   budgetAlerts: boolean;
+  fxAlerts: boolean;
 
   setLanguage: (lang: Language) => Promise<void>;
   setCurrency: (currency: string) => Promise<void>;
@@ -19,6 +20,7 @@ interface SettingsState {
   setDaysBefore: (days: number) => void;
   setMonthlyBudget: (budget: number | null) => void;
   setBudgetAlerts: (enabled: boolean) => void;
+  setFxAlerts: (enabled: boolean) => void;
   loadSettings: () => Promise<void>;
   /** 알림 설정을 서버에서 받아 온다. 웹에서 바꾼 값이 앱에도 그대로 보이도록. */
   syncFromServer: () => Promise<void>;
@@ -35,6 +37,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   daysBefore: 3,
   monthlyBudget: null,
   budgetAlerts: true,
+  fxAlerts: true,
 
   setLanguage: async (lang: Language) => {
     await AsyncStorage.setItem('language', lang);
@@ -68,6 +71,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({ budgetAlerts: enabled });
     notificationAPI.updateSettings({ budget_alerts: enabled }).catch(() => {});
   },
+  setFxAlerts: (enabled) => {
+    set({ fxAlerts: enabled });
+    notificationAPI.updateSettings({ fx_alerts: enabled }).catch(() => {});
+  },
 
   syncFromServer: async () => {
     try {
@@ -79,6 +86,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         daysBefore: d.notify_days_before ?? 3,
         monthlyBudget: d.budget_monthly ?? null,
         budgetAlerts: d.budget_alerts ?? true,
+        fxAlerts: d.fx_alerts ?? true,
       });
     } catch {
       // 로그인 전이거나 오프라인 — 다음 기회에 다시 맞춘다

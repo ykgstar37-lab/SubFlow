@@ -387,6 +387,14 @@ class NotificationService:
 
     async def sync_exchange_rate_notifications(self, user_id: UUID) -> None:
         """외화 구독 환율 급등 알림 (구독별 월 1회)."""
+        setting = (
+            await self.db.execute(
+                select(NotificationSetting).where(NotificationSetting.user_id == user_id)
+            )
+        ).scalar_one_or_none()
+        if setting is not None and not setting.fx_alerts:
+            return
+
         from app.services.analytics_service import AnalyticsService
 
         alerts = (await AnalyticsService(self.db).get_exchange_rate_alerts(user_id)).alerts

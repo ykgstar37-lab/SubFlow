@@ -460,6 +460,8 @@ const EN: Record<string, string> = {
   "요금제 삭제에 실패했습니다.": "Could not delete the plan.",
   "'{name}' 요금제를 삭제하시겠습니까?": "Delete the plan '{name}'?",
 
+  "외화 구독 환율 변동 알림 받기": "Notify me when exchange rates move",
+
   // ── 예산 알림 ──
   "예산의 80%를 넘으면 알려주기": "Notify me when I pass 80% of the budget",
   "끄면 예산은 그대로 두고 알림만 오지 않습니다. 저장을 눌러야 반영됩니다.":
