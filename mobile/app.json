@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.subflow.app",
+      "bundleIdentifier": "app.mysubflow",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
@@ -30,7 +30,7 @@
         "backgroundColor": "#C4DCF2"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.subflow.app",
+      "package": "app.mysubflow",
       "permissions": [
         "android.permission.POST_NOTIFICATIONS"
       ],
