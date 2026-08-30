@@ -149,7 +149,8 @@ import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { GradientButton } from '../../src/components/GradientButton';
 import { NewsModal } from '../../src/components/NewsModal';
 import { useTranslation } from '../../src/hooks/useTranslation';
-import { useSubscriptions, useAnalyticsOverview, useExchangeRateAlerts, useInbox, useNews } from '../../src/hooks/useApi';
+import { useSubscriptions, useAnalyticsOverview, useExchangeRateAlerts,
+  usePriceChanges, useInbox, useNews } from '../../src/hooks/useApi';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { notificationAPI } from '../../src/services/api';
 
@@ -177,6 +178,9 @@ export default function HomeScreen() {
   const subsQuery = useSubscriptions();
   const overviewQuery = useAnalyticsOverview();
   const exchangeQuery = useExchangeRateAlerts();
+  // 카드의 화살표는 지금까지 늘 위를 가리키는 장식이었다(수익 대시보드
+  // 레퍼런스에서 그대로 가져온 것). 실제 요금 변동에 맞춰 방향을 잡는다.
+  const priceQuery = usePriceChanges();
   const inboxQuery = useInbox();
   const unreadCount = inboxQuery.data?.unread_count ?? 0;
 
@@ -234,6 +238,13 @@ export default function HomeScreen() {
     }));
 
   const hasSubs = subs.length > 0;
+  // 구독별 요금 변동. 값이 없으면 화살표를 아예 띄우지 않는다 —
+  // 바뀐 게 없는데 화살표가 떠 있으면 없는 사실을 말하는 셈이다.
+  const priceChangeById: Record<string, number> = {};
+  for (const a of ((priceQuery.data as any)?.alerts ?? [])) {
+    priceChangeById[String(a.subscription_id)] = Number(a.change_amount ?? 0);
+  }
+
   const EMPTY_SUB: Subscription = { id: '', name: '', amount: 0, monthlyKrw: 0, currency: 'KRW', startDate: '' };
   // 통화가 섞이면 단순 합산이 부정확하므로 백엔드가 KRW로 환산한 월 총액을 사용 (예산도 KRW라 비교 일관)
   const totalMonthlySpend = Number((overviewQuery.data as any)?.total_monthly_cost ?? subs.reduce((sum, s) => sum + s.monthlyKrw, 0));
@@ -429,7 +440,19 @@ export default function HomeScreen() {
                             {krwHint(item.amount, item.currency, item.rateKrw)}
                           </Text>
                         )}
-                        <Ionicons name="arrow-up-circle" size={14} color={Colors.success} style={{ marginLeft: 4 }} />
+                        {(() => {
+                          const change = priceChangeById[item.id];
+                          if (!change) return null;
+                          const wentUp = change > 0;
+                          return (
+                            <Ionicons
+                              name={wentUp ? 'arrow-up-circle' : 'arrow-down-circle'}
+                              size={14}
+                              color={wentUp ? Colors.success : Colors.primary}
+                              style={{ marginLeft: 4 }}
+                            />
+                          );
+                        })()}
                       </View>
                     </View>
                   </View>

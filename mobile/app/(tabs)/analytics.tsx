@@ -468,7 +468,9 @@ export default function AnalyticsScreen() {
               </View>
 
               {/* ── 예산 현황 ── */}
-              {((budget.data as any)?.budget_monthly > 0 || (budget.data as any)?.monthly_budget > 0 || budget.error) && (() => {
+              {/* 예산을 안 정했어도 카드를 띄운다. 안 보이면 어디서 정하는지
+                  알 길이 없어 설정 탭을 뒤져야 했다. */}
+              {(() => {
                 const bd = budget.data as any;
                 const budgetAmount = Number(bd?.budget_monthly ?? bd?.monthly_budget ?? 0);
                 const spent = Number(bd?.current_spending ?? bd?.total_spent ?? 0);
@@ -492,25 +494,42 @@ export default function AnalyticsScreen() {
                         <Ionicons name="create-outline" size={18} color={Colors.textSecondary} />
                       </TouchableOpacity>
                     </View>
-                    <View style={styles.budgetBar}>
-                      <View
-                        style={[
-                          styles.budgetFill,
-                          {
-                            width: `${Math.min(pct, 100)}%`,
-                            backgroundColor: pct > 80 ? Colors.danger : Colors.success,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <View style={styles.budgetLabels}>
-                      <Text style={styles.budgetText}>
-                        ₩{spent.toLocaleString()}
-                      </Text>
-                      <Text style={styles.budgetText}>
-                        / ₩{budgetAmount.toLocaleString()}
-                      </Text>
-                    </View>
+                    {budgetAmount > 0 ? (
+                      <>
+                        <View style={styles.budgetBar}>
+                          <View
+                            style={[
+                              styles.budgetFill,
+                              {
+                                width: `${Math.min(pct, 100)}%`,
+                                backgroundColor: pct > 80 ? Colors.danger : Colors.success,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <View style={styles.budgetLabels}>
+                          <Text style={styles.budgetText}>
+                            ₩{spent.toLocaleString()}
+                          </Text>
+                          <Text style={styles.budgetText}>
+                            / ₩{budgetAmount.toLocaleString()}
+                          </Text>
+                        </View>
+                      </>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.budgetEmpty}
+                        onPress={() => { setBudgetInput(''); setBudgetModalOpen(true); }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                        <Text style={styles.budgetEmptyText}>
+                          {language === 'ko'
+                            ? '월 예산을 정하면 얼마나 썼는지 보여드려요'
+                            : 'Set a monthly budget to track how much you have spent'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 );
               })()}
@@ -945,6 +964,11 @@ const styles = StyleSheet.create({
   },
   overlapCancelText: { fontSize: 11, color: Colors.danger, fontWeight: FontWeight.semibold },
   overlapCancelSpacer: { width: 44 },
+  budgetEmpty: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  budgetEmptyText: { flex: 1, fontSize: FontSize.sm, color: Colors.textSecondary },
   budgetInput: {
     alignSelf: 'stretch', backgroundColor: Colors.surfaceLight,
     borderWidth: 1, borderColor: Colors.border, borderRadius: 12,
