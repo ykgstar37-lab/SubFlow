@@ -51,6 +51,13 @@ const translations = {
   'home.status': { en: 'Status', ko: '상태' },
   'home.statusActive': { en: 'Active', ko: '관리중' },
   'home.monthlyPrice': { en: 'Monthly Price', ko: '월 구독료' },
+  'home.yearlyPrice': { en: 'Yearly Price', ko: '연 구독료' },
+  'home.weeklyPrice': { en: 'Weekly Price', ko: '주 구독료' },
+  'home.quarterlyPrice': { en: 'Quarterly Price', ko: '분기 구독료' },
+  'sub.costMonthly': { en: 'Monthly', ko: '월 비용' },
+  'sub.costYearly': { en: 'Yearly', ko: '연 비용' },
+  'sub.costWeekly': { en: 'Weekly', ko: '주 비용' },
+  'sub.costQuarterly': { en: 'Quarterly', ko: '분기 비용' },
   'home.spendingAnalysis': { en: 'Spending Analysis', ko: '지출 분석' },
   'home.subscribedFor': { en: 'Subscribed for', ko: '구독 기간' },
   'home.ofMonthlyCost': { en: 'of Monthly Cost', ko: '월 비용 비중' },
@@ -187,6 +194,22 @@ export function t(key: TranslationKey, lang: Language, params?: Record<string, s
   }
 
   return text;
+}
+
+/** 결제 주기에 맞는 금액 라벨. 연 결제인데 '월 구독료'라고 적으면
+ *  화면의 숫자가 매달 나가는 돈으로 읽힌다 — 실제로는 1년치다. */
+export function cyclePriceKey(cycle: string | undefined, scope: 'home' | 'sub' = 'home'): TranslationKey {
+  const c = (cycle ?? 'monthly').toLowerCase();
+  if (scope === 'sub') {
+    if (c === 'yearly') return 'sub.costYearly';
+    if (c === 'weekly') return 'sub.costWeekly';
+    if (c === 'quarterly') return 'sub.costQuarterly';
+    return 'sub.costMonthly';
+  }
+  if (c === 'yearly') return 'home.yearlyPrice';
+  if (c === 'weekly') return 'home.weeklyPrice';
+  if (c === 'quarterly') return 'home.quarterlyPrice';
+  return 'home.monthlyPrice';
 }
 
 export default translations;

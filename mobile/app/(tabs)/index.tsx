@@ -40,6 +40,7 @@ interface Subscription {
   monthlyKrw: number;  // 계산용 — 월 단위 KRW로 환산한 내 몫 (서버가 준다)
   rateKrw?: number;    // 이 통화의 현재 환율 (1 통화 = ? KRW). 원화면 없음
   currency: string;
+  cycle: string;       // 결제 주기 — monthly/yearly/weekly/quarterly
   startDate: string; // YYYY-MM-DD
   priceNews?: string;
 }
@@ -150,6 +151,7 @@ import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { GradientButton } from '../../src/components/GradientButton';
 import { NewsModal } from '../../src/components/NewsModal';
 import { useTranslation } from '../../src/hooks/useTranslation';
+import { cyclePriceKey } from '../../src/i18n/translations';
 import { useSubscriptions, useAnalyticsOverview, useExchangeRateAlerts,
   usePriceChanges, useInbox, useNews } from '../../src/hooks/useApi';
 import { useSettingsStore } from '../../src/store/settingsStore';
@@ -244,6 +246,7 @@ export default function HomeScreen() {
       monthlyKrw: Number(s.monthly_cost_krw ?? s.cost ?? s.amount ?? 0),
       rateKrw: s.exchange_rate_krw != null ? Number(s.exchange_rate_krw) : undefined,
       currency: s.currency ?? 'KRW',
+      cycle: String(s.billing_cycle ?? 'monthly').toLowerCase(),
       startDate: s.start_date ?? s.started_at ?? s.created_at ?? '2024-01-01',
     }));
 
@@ -255,7 +258,7 @@ export default function HomeScreen() {
     priceChangeById[String(a.subscription_id)] = Number(a.change_amount ?? 0);
   }
 
-  const EMPTY_SUB: Subscription = { id: '', name: '', amount: 0, monthlyKrw: 0, currency: 'KRW', startDate: '' };
+  const EMPTY_SUB: Subscription = { id: '', name: '', amount: 0, monthlyKrw: 0, currency: 'KRW', cycle: 'monthly', startDate: '' };
   // 통화가 섞이면 단순 합산이 부정확하므로 백엔드가 KRW로 환산한 월 총액을 사용 (예산도 KRW라 비교 일관)
   const totalMonthlySpend = Number((overviewQuery.data as any)?.total_monthly_cost ?? subs.reduce((sum, s) => sum + s.monthlyKrw, 0));
   const activeSub = subs[Math.min(activeIndex, subs.length - 1)] ?? subs[0] ?? EMPTY_SUB;
@@ -429,9 +432,11 @@ export default function HomeScreen() {
                     <View style={styles.floatingTopCard}>
                       <View style={styles.fCardLeft}>
                         <ServiceLogo name={item.name} size={42} />
-                        <View>
-                          <Text style={styles.fName}>{item.name}</Text>
-                          <Text style={styles.fId}>{item.currency} · {item.amount > 0 ? (item.currency === 'KRW' ? 'monthly' : 'monthly') : ''}</Text>
+                        <View style={styles.fCardText}>
+                          <Text style={styles.fName} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
+                          <Text style={styles.fId} numberOfLines={1}>
+                            {item.currency}{item.amount > 0 ? ` · ${item.cycle}` : ''}
+                          </Text>
                         </View>
                       </View>
                       <View style={styles.rotateBtn}>
@@ -442,7 +447,7 @@ export default function HomeScreen() {
                     {/* 가격 지표 (레퍼런스처럼 카드에 밀착) */}
                     <View style={styles.revenueWrapper}>
                       <View style={[styles.floatingRevenue, styles.glassPill]}>
-                        <Text style={styles.revenueLabel}>{t('home.monthlyPrice')}</Text>
+                        <Text style={styles.revenueLabel}>{t(cyclePriceKey(item.cycle))}</Text>
                         <Text style={styles.revenueValue}>{formatPrice(item.amount, item.currency)}</Text>
                         {/* 외화 구독은 현재 환율 기준 원화를 함께 보여준다 */}
                         {krwHint(item.amount, item.currency, item.rateKrw) !== '' && (
@@ -1060,12 +1065,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
+    gap: Spacing.sm,
     ...Shadow.sm,
   },
   fCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+    flex: 1,
+    minWidth: 0,
+  },
+  // 로고 옆 텍스트는 남는 폭만 쓴다 — 이게 없으면 긴 이름이 카드를 밀고 나간다
+  fCardText: {
+    flex: 1,
+    minWidth: 0,
   },
   fName: {
     fontSize: FontSize.md,
@@ -1079,6 +1092,7 @@ const styles = StyleSheet.create({
   rotateBtn: {
     width: 40,
     height: 40,
+    flexShrink: 0,
     borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
     justifyContent: 'center',

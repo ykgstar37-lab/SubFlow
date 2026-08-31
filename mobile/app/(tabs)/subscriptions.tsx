@@ -10,6 +10,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useTranslation } from '../../src/hooks/useTranslation';
+import { cyclePriceKey } from '../../src/i18n/translations';
 import { ServiceLogo } from '../../src/components/ServiceLogo';
 import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { GradientButton } from '../../src/components/GradientButton';
@@ -98,8 +99,8 @@ export default function SubscriptionsScreen() {
 
   // 플랜 선택 모달 상태
   const [planPickerVisible, setPlanPickerVisible] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: number; cycle: string } | null>(null);
-  const [servicePlans, setServicePlans] = useState<{ name: string; price: number; cycle: string }[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<{ name: string; price: number; cycle: string; currency: string } | null>(null);
+  const [servicePlans, setServicePlans] = useState<{ name: string; price: number; cycle: string; currency: string }[]>([]);
 
   // 날짜 선택 캘린더 상태
   const [datePickerVisible, setDatePickerVisible] = useState(false);
@@ -249,6 +250,7 @@ export default function SubscriptionsScreen() {
       if (matched?.plans?.length > 0) {
         setServicePlans(matched.plans.map((p: any) => ({
           name: p.name, price: Number(p.price), cycle: p.billing_cycle?.toLowerCase() ?? 'monthly',
+          currency: p.currency ?? 'KRW',
         })));
       }
     }).catch(() => {});
@@ -637,17 +639,20 @@ export default function SubscriptionsScreen() {
                 activeOpacity={servicePlans.length > 0 ? 0.6 : 1}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={styles.modalInfoLabel}>{language === 'ko' ? '월 비용' : 'Monthly'}</Text>
+                  <Text style={styles.modalInfoLabel}>{t(cyclePriceKey(selectedPlan?.cycle ?? selectedSub.cycle, 'sub'))}</Text>
                   {servicePlans.length > 0 && (
                     <Ionicons name={planPickerVisible ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.primary} />
                   )}
                 </View>
                 <Text style={styles.modalInfoValue}>
-                  {formatPrice(selectedPlan ? selectedPlan.price : selectedSub.amount, selectedSub.currency)}
+                  {formatPrice(selectedPlan ? selectedPlan.price : selectedSub.amount,
+                               selectedPlan ? selectedPlan.currency : selectedSub.currency)}
                 </Text>
-                {krwHint(selectedPlan ? selectedPlan.price : selectedSub.amount, selectedSub.currency, selectedSub.rateKrw) !== '' && (
+                {krwHint(selectedPlan ? selectedPlan.price : selectedSub.amount,
+                         selectedPlan ? selectedPlan.currency : selectedSub.currency, selectedSub.rateKrw) !== '' && (
                   <Text style={styles.subKrw}>
-                    {krwHint(selectedPlan ? selectedPlan.price : selectedSub.amount, selectedSub.currency, selectedSub.rateKrw)}
+                    {krwHint(selectedPlan ? selectedPlan.price : selectedSub.amount,
+                             selectedPlan ? selectedPlan.currency : selectedSub.currency, selectedSub.rateKrw)}
                   </Text>
                 )}
                 {selectedPlan && (
@@ -687,7 +692,7 @@ export default function SubscriptionsScreen() {
                         <Text style={styles.planCycle}>{plan.cycle}</Text>
                       </View>
                       <Text style={[styles.planPrice, isCurrentPlan && { color: Colors.primary }]}>
-                        {formatPrice(plan.price, selectedSub?.currency ?? 'KRW')}
+                        {formatPrice(plan.price, plan.currency)}
                       </Text>
                       {isCurrentPlan && <Ionicons name="checkmark-circle" size={20} color={Colors.primary} style={{ marginLeft: 8 }} />}
                     </TouchableOpacity>
