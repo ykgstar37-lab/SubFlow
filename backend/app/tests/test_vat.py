@@ -125,14 +125,38 @@ async def test_user_entered_plan_defaults_to_vat_included(
     assert float(sub.json()["cost"]) == 5500
 
 
-async def test_seed_marks_foreign_catalog_prices_as_vat_excluded(test_db: AsyncSession):
-    """시드 기본값: 원화는 포함가, 그 밖의 통화는 별도."""
+async def test_seed_applies_vat_defaults_and_overrides(test_db: AsyncSession):
+    """시드 기본값은 통화로 정하되(원화=포함), 요금제 줄에 적은 값이 이긴다.
+
+    통화만 보고 단정하면 안 된다 — 한국 앱스토어 인앱결제가처럼 외화여도
+    포함가인 경우가 있어서 예외를 적을 수 있게 만들어 둔 기능이다.
+    """
+    from app.utils.seed_data import DEFAULT_SERVICES
+
     await seed_services(test_db)
 
+    # 시드에 적힌 기대값 {(서비스명, 요금제명): vat_included}
+    expected = {}
+    for services in DEFAULT_SERVICES.values():
+        for svc in services:
+            for plan in svc.get("plans", []):
+                expected[(svc["name"], plan["name"])] = plan.get(
+                    "vat_included", plan.get("currency") == "KRW"
+                )
+
     result = await test_db.execute(
-        select(ServicePlan.currency, ServicePlan.vat_included).where(ServicePlan.user_id.is_(None))
+        select(Service.name, ServicePlan.name, ServicePlan.vat_included)
+        .join(ServicePlan, ServicePlan.service_id == Service.id)
+        .where(ServicePlan.user_id.is_(None))
     )
     rows = result.all()
     assert rows, "카탈로그가 비어 있으면 이 테스트는 아무것도 못 본다"
-    for currency, vat_included in rows:
-        assert vat_included is (currency == "KRW"), currency
+
+    checked = 0
+    for svc_name, plan_name, vat_included in rows:
+        want = expected.get((svc_name, plan_name))
+        if want is None:
+            continue  # 이 테스트가 만든 임시 서비스
+        assert vat_included is want, f"{svc_name} / {plan_name}"
+        checked += 1
+    assert checked > 100, "카탈로그 요금제 대부분을 확인해야 뜻이 있다"

@@ -119,6 +119,34 @@ function toService(raw: CatalogService): Service {
   };
 }
 
+/** 날짜에 개월 수를 더한다. 말일은 다음 달 길이에 맞춰 당긴다(1/31 + 1개월 = 2/28).
+ *  백엔드 renewal_service._add_months, 웹 billingDate.ts와 같은 규칙이라야
+ *  화면에 적힌 다음 결제일과 서버가 실제로 갱신하는 날짜가 어긋나지 않는다. */
+function addMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const total = m - 1 + months;
+  const year = y + Math.floor(total / 12);
+  const month = ((total % 12) + 12) % 12;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const day = Math.min(d, lastDay);
+  return [year, String(month + 1).padStart(2, '0'), String(day).padStart(2, '0')].join('-');
+}
+
+/** 시작일 + 결제 주기 = 다음 결제일. 시작일과 같은 날로 두면 담자마자
+ *  결제 임박 알림이 뜨고 갱신 스케줄러가 한 주기를 건너뛴 것으로 본다. */
+function nextBillingDate(startIso: string, cycle: string): string {
+  const c = (cycle || 'MONTHLY').toUpperCase();
+  if (c === 'WEEKLY') {
+    const d = new Date(`${startIso}T00:00:00`);
+    d.setDate(d.getDate() + 7);
+    return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'),
+            String(d.getDate()).padStart(2, '0')].join('-');
+  }
+  if (c === 'QUARTERLY') return addMonths(startIso, 3);
+  if (c === 'YEARLY') return addMonths(startIso, 12);
+  return addMonths(startIso, 1);
+}
+
 /** 부가세 별도 요금제의 실제 결제액. 서버도 같은 계산을 한다(app/utils/vat.py).
  *  해외 웹 결제는 청구서에 10%가 더 붙는다($20짜리가 $22로 빠진다). */
 function withVat(plan: Plan): number {
@@ -348,6 +376,9 @@ export default function CatalogScreen() {
     const dateVal = `${calYear}-${mm}-${dd}`;
     if (activePickerField === 'start') {
       setStartDate(dateVal);
+      // 시작일을 옮기면 다음 결제일도 주기만큼 뒤로 따라간다. 따로 정하고
+      // 싶으면 아래 칸에서 고치면 된다 — 이 순서가 손이 덜 간다.
+      setBillingDate(nextBillingDate(dateVal, selectedPlan?.billingCycle ?? 'MONTHLY'));
     } else {
       setBillingDate(dateVal);
     }
@@ -849,7 +880,11 @@ export default function CatalogScreen() {
                       <TouchableOpacity
                         key={plan.id}
                         style={[styles.modalPlanRow, isSelected && styles.modalPlanRowActive]}
-                        onPress={() => setSelectedPlan(plan)}
+                        onPress={() => {
+                          setSelectedPlan(plan);
+                          // 월간에서 연간으로 바꾸면 다음 결제일도 1년 뒤여야 한다
+                          if (startDate) setBillingDate(nextBillingDate(startDate, plan.billingCycle));
+                        }}
                         activeOpacity={0.6}
                       >
                         <View style={[styles.modalPlanRadio, isSelected && styles.modalPlanRadioActive]}>

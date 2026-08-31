@@ -433,6 +433,20 @@ DEFAULT_SERVICES = {
     ],
     "Developer Tools": [
         {
+            "name": "Apple Developer Program",
+            "description": "App Store 앱 배포와 개발자 도구 이용을 위한 연간 멤버십",
+            "website_url": "https://developer.apple.com/programs/",
+            "cancel_url": "https://developer.apple.com/account/",
+            "logo_url": "/logos/appledeveloper.png",
+            "is_popular": False,
+            "plans": [
+                # 애플이 공개한 연회비. 나라마다 청구 통화가 달라 실제 결제액은
+                # 다를 수 있으므로, 담은 뒤 각자 청구서 금액으로 고쳐 쓰면 된다.
+                {"name": "개인·조직 (연간)", "price": 99, "currency": "USD",
+                 "billing_cycle": "YEARLY", "vat_included": True},
+            ],
+        },
+        {
             "name": "GitHub Copilot",
             "description": "AI 기반 코드 자동완성 도구",
             "website_url": "https://github.com/features/copilot",

@@ -34,6 +34,7 @@ const LOGOS: Record<string, ImageSourcePropType> = {
   'Perplexity Pro': require('../../assets/logos/perplexity.png'),
   'GitLab': require('../../assets/logos/gitlab.png'),
   'Replit': require('../../assets/logos/replit.png'),
+  'Apple Developer Program': require('../../assets/logos/appledeveloper.png'),
   'Vercel': require('../../assets/logos/vercel.png'),
   'Netlify': require('../../assets/logos/netlify.png'),
   'AWS': require('../../assets/logos/aws.png'),
