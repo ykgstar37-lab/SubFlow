@@ -85,8 +85,25 @@ def price_change_body(plan_name: str, old_price: str, new_price: str, pct: str) 
 BUDGET_TITLE = "이번 달 예산을 초과했어요"
 
 
-def budget_body(spending_krw: int, budget_krw: int, percentage: float) -> str:
-    return f"지출 {spending_krw:,}원 / 예산 {budget_krw:,}원 ({percentage:.0f}%)"
+def budget_body(
+    spending_krw: int, budget_krw: int, percentage: float, note: str | None = None
+) -> str:
+    body = f"지출 {spending_krw:,}원 / 예산 {budget_krw:,}원 ({percentage:.0f}%)"
+    # 연회비가 걸린 달은 금액이 평소보다 크게 뛴다. 이유를 같이 알려 주지 않으면
+    # 앱이 잘못 센 것처럼 보인다.
+    if not note:
+        return body
+    return body + "\n" + note
+
+
+def budget_irregular_note(items: list[tuple[str, int]]) -> str | None:
+    """이번 달에만 얹힌 연간·분기 결제를 한 줄로 설명한다."""
+    if not items:
+        return None
+    name, amount = items[0]
+    if len(items) == 1:
+        return f"이번 달은 {name} {amount:,}원이 함께 결제돼요."
+    return f"이번 달은 {name} 외 {len(items) - 1}건의 정기 결제가 함께 있어요."
 
 
 def fx_title(service_name: str) -> str:

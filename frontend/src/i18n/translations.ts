@@ -149,6 +149,9 @@ const EN: Record<string, string> = {
   // ── 대시보드 ──
   "오늘도 똑똑하게": "Smart as always",
   "월 총 지출": "Monthly spend",
+  "월 평균 {a}": "{a} / month on average",
+  "이번 달은 {name} {amount}이 함께 결제돼요.": "{name} ({amount}) is also billed this month.",
+  "이번 달은 {name} 외 {n}건이 함께 결제돼요.": "{name} and {n} more are also billed this month.",
   "연 예상 지출": "Projected yearly spend",
   "연 예상 비용": "Projected yearly cost",
   "월 예상 비용": "Projected monthly cost",

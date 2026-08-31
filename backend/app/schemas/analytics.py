@@ -170,9 +170,24 @@ class PriceChangeAlertResponse(BaseModel):
 
 
 # Feature 6: Budget Status
+class BudgetChargeItem(BaseModel):
+    """이번 달에만 잡히는 비월간 결제 1건."""
+
+    service_name: str
+    amount: Decimal
+    billing_cycle: str
+    billing_date: str
+
+
 class BudgetStatusResponse(BaseModel):
     budget_monthly: int | None = None
+    # 이번 달에 실제로 통장에서 나가는 금액. 연간 구독을 12로 나누지 않는다 —
+    # 사용자가 할부로 내는 게 아니라 그달에 한 번에 내기 때문이다.
     current_spending: Decimal
     remaining: Decimal | None = None
     percentage_used: float | None = None  # 0-100+
     is_over_budget: bool = False
+    # 규모 비교용 월 평균(연간을 12로 나눈 값). 지출 비중·추이는 이 기준을 쓴다.
+    monthly_average: Decimal = Decimal("0")
+    # 이번 달 금액이 평소와 다른 이유를 화면에서 설명하기 위한 목록
+    irregular_charges: list[BudgetChargeItem] = []

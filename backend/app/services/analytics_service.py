@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -25,6 +25,7 @@ from app.schemas.analytics import (
     OverlapDetectionResponse,
     OverlapItem,
     OverlapService,
+    BudgetChargeItem,
     BudgetStatusResponse,
     SavingSuggestionItem,
     SavingsSuggestionsResponse,
@@ -34,10 +35,56 @@ from app.schemas.analytics import (
     PriceChangeAlertItem,
     PriceChangeAlertResponse,
 )
+from app.services.renewal_service import _add_months
 from app.utils.cost import to_monthly_cost, to_monthly_cost_krw
 from app.utils.exchange_rate import get_exchange_rates, to_krw
 from app.utils.vat import with_vat
 from app.utils.visibility import only_visible_plans, visible_plans
+
+
+
+_MONTHS_PER_CYCLE = {
+    BillingCycle.MONTHLY: 1,
+    BillingCycle.QUARTERLY: 3,
+    BillingCycle.YEARLY: 12,
+}
+
+
+def _billing_dates_in(
+    next_billing: date,
+    cycle: BillingCycle,
+    start: date,
+    period_start: date,
+    period_end: date,
+) -> list[date]:
+    """구독의 결제일 중 [period_start, period_end] 안에 드는 것을 모두 돌려준다.
+
+    next_billing_date 하나만 보면 이번 달에 이미 지나간 결제를 놓친다 — 갱신이
+    돌고 나면 다음 결제일이 다음 달로 넘어가 있기 때문이다. 그래서 주기 단위로
+    뒤로도 세어 본다.
+
+    날짜는 매번 next_billing에서 직접 계산한다. _add_months를 반복 적용하면
+    말일 보정 때문에 1/31 → 2/28 → 3/28로 원래 날짜를 잃는다.
+    """
+    if period_end < start:
+        return []
+
+    dates: list[date] = []
+    if cycle == BillingCycle.WEEKLY:
+        k0 = (period_start - next_billing).days // 7
+        candidates = (next_billing + timedelta(days=7 * k) for k in range(k0 - 1, k0 + 7))
+    else:
+        months = _MONTHS_PER_CYCLE.get(cycle, 1)
+        delta = (period_start.year - next_billing.year) * 12 + (
+            period_start.month - next_billing.month
+        )
+        k0 = delta // months
+        candidates = (_add_months(next_billing, months * k) for k in range(k0 - 1, k0 + 3))
+
+    for d in candidates:
+        if period_start <= d <= period_end and d >= start:
+            dates.append(d)
+    return sorted(dates)
 
 
 class AnalyticsService:
@@ -498,15 +545,53 @@ class AnalyticsService:
         return PriceChangeAlertResponse(alerts=alerts)
 
     async def get_budget_status(self, user_id: UUID) -> BudgetStatusResponse:
-        # Get current monthly spending (reuse logic from get_overview)
-        subs = await self._get_active_subscriptions(user_id)
-        monthly_krw_list = [
-            await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency)
-            for s in subs
-        ]
-        current_spending = sum(monthly_krw_list, Decimal("0")).quantize(Decimal("1"))
+        """예산은 '이번 달에 통장에서 나가는 돈'으로 판정한다.
 
-        # Get budget from notification_settings
+        지출 비중·추이 같은 지표는 연간 구독을 12로 나눠 평탄하게 보는 게 맞지만,
+        예산은 현금흐름 개념이다. 연회비 129,000원을 12로 나눠 10,750원만 잡으면
+        정작 그 돈이 빠져나가는 달에 앱이 아무 말도 하지 않는다. 실제로 할부로
+        내는 게 아니므로 결제가 걸린 달에 전액을 싣는다.
+
+        규모 비교용 월 평균은 monthly_average로 함께 내려 화면에서 같이 보여준다.
+        """
+        subs = await self._get_active_subscriptions(user_id)
+
+        monthly_average = sum(
+            [
+                await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency)
+                for s in subs
+            ],
+            Decimal("0"),
+        ).quantize(Decimal("1"))
+
+        today = date.today()
+        month_start = today.replace(day=1)
+        month_end = _add_months(month_start, 1) - timedelta(days=1)
+
+        current_spending = Decimal("0")
+        irregular: list[BudgetChargeItem] = []
+        for s in subs:
+            charges = _billing_dates_in(
+                s.next_billing_date, s.billing_cycle, s.start_date, month_start, month_end
+            )
+            if not charges:
+                continue
+            amount = await to_krw(s.personal_cost, s.currency)
+            current_spending += amount * len(charges)
+            # 월간·주간은 매달 있는 돈이라 설명할 게 없다. 이번 달에만 얹힌 것만 알린다.
+            if s.billing_cycle in (BillingCycle.YEARLY, BillingCycle.QUARTERLY):
+                for d in charges:
+                    irregular.append(
+                        BudgetChargeItem(
+                            service_name=s.service_name,
+                            amount=amount.quantize(Decimal("1")),
+                            billing_cycle=s.billing_cycle.value,
+                            billing_date=d.isoformat(),
+                        )
+                    )
+        current_spending = current_spending.quantize(Decimal("1"))
+        irregular.sort(key=lambda i: i.amount, reverse=True)
+
         result = await self.db.execute(
             select(NotificationSetting).where(NotificationSetting.user_id == user_id)
         )
@@ -517,6 +602,8 @@ class AnalyticsService:
             return BudgetStatusResponse(
                 budget_monthly=None,
                 current_spending=current_spending,
+                monthly_average=monthly_average,
+                irregular_charges=irregular,
             )
 
         budget = Decimal(str(budget_monthly))
@@ -530,4 +617,6 @@ class AnalyticsService:
             remaining=remaining.quantize(Decimal("1")),
             percentage_used=round(percentage_used, 1),
             is_over_budget=is_over_budget,
+            monthly_average=monthly_average,
+            irregular_charges=irregular,
         )

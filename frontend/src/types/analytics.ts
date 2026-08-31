@@ -127,10 +127,22 @@ export interface PriceChangeAlertResponse {
 }
 
 // Feature 6: Budget Status
+export interface BudgetChargeItem {
+  service_name: string;
+  amount: number;
+  billing_cycle: string;
+  billing_date: string;
+}
+
 export interface BudgetStatus {
   budget_monthly: number | null;
+  /** 이번 달에 실제로 빠져나가는 금액. 연간 구독을 12로 나누지 않는다. */
   current_spending: number;
   remaining: number | null;
   percentage_used: number | null;
   is_over_budget: boolean;
+  /** 규모 비교용 월 평균(연간을 12로 나눈 값) */
+  monthly_average: number;
+  /** 이번 달에만 얹힌 연간·분기 결제 */
+  irregular_charges: BudgetChargeItem[];
 }

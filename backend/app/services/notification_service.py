@@ -377,6 +377,9 @@ class NotificationService:
                     int(status_.current_spending),
                     int(status_.budget_monthly),
                     status_.percentage_used,
+                    messages.budget_irregular_note(
+                        [(i.service_name, int(i.amount)) for i in status_.irregular_charges]
+                    ),
                 ),
                 category=messages.NOTIFICATION_CATEGORY,
                 link="/analytics",

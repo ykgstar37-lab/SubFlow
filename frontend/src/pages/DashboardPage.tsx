@@ -196,7 +196,7 @@ export default function DashboardPage() {
             <Link to="/subscriptions" className="glass p-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-slate-400">{tr("월 총 지출")}</p>
+                  <p className="text-sm text-slate-400">{tr("월 평균 지출")}</p>
                   <p className="mt-2 text-2xl font-extrabold gradient-text">{fmtMoney(overview.total_monthly_cost)}</p>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100/70 text-amber-600">

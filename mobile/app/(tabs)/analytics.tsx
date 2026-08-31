@@ -476,6 +476,23 @@ export default function AnalyticsScreen() {
                 const budgetAmount = Number(bd?.budget_monthly ?? bd?.monthly_budget ?? 0);
                 const spent = Number(bd?.current_spending ?? bd?.total_spent ?? 0);
                 const pct = Number(bd?.percentage_used ?? bd?.usage_percentage ?? 0);
+                const avg = Number(bd?.monthly_average ?? 0);
+                // 연회비가 걸린 달은 금액이 평소보다 크게 뛴다. 이유를 적어 주지
+                // 않으면 사용자가 앱이 잘못 셌다고 생각한다.
+                const irregular = (bd?.irregular_charges ?? []) as Array<{
+                  service_name: string;
+                  amount: number | string;
+                }>;
+                const first = irregular[0];
+                const irregularText = !first
+                  ? null
+                  : irregular.length === 1
+                    ? language === 'ko'
+                      ? `이번 달은 ${first.service_name} ₩${Number(first.amount).toLocaleString()}이 함께 결제돼요.`
+                      : `${first.service_name} (₩${Number(first.amount).toLocaleString()}) is also billed this month.`
+                    : language === 'ko'
+                      ? `이번 달은 ${first.service_name} 외 ${irregular.length - 1}건이 함께 결제돼요.`
+                      : `${first.service_name} and ${irregular.length - 1} more are also billed this month.`;
                 return (
                   <View style={styles.card}>
                     <View style={styles.cardHeader}>
@@ -516,6 +533,16 @@ export default function AnalyticsScreen() {
                             / ₩{budgetAmount.toLocaleString()}
                           </Text>
                         </View>
+                        {avg > 0 && (
+                          <Text style={styles.budgetNote}>
+                            {language === 'ko'
+                              ? `월 평균 ₩${avg.toLocaleString()}`
+                              : `₩${avg.toLocaleString()} / month on average`}
+                          </Text>
+                        )}
+                        {irregularText && (
+                          <Text style={styles.budgetNote}>{irregularText}</Text>
+                        )}
                       </>
                     ) : (
                       <TouchableOpacity
@@ -949,6 +976,7 @@ const styles = StyleSheet.create({
   budgetFill: { height: '100%', borderRadius: 4 },
   budgetLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.sm },
   budgetText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: FontWeight.medium },
+  budgetNote: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 4 },
   emptyText: { fontSize: FontSize.sm, color: Colors.textTertiary, marginTop: Spacing.lg, textAlign: 'center' },
   // Overlaps
   overlapDivider: { height: 1, backgroundColor: Colors.borderLight, marginTop: Spacing.xl, marginBottom: Spacing.lg },
