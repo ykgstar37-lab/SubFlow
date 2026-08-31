@@ -185,15 +185,21 @@ export default function HomeScreen() {
   const inboxQuery = useInbox();
   const unreadCount = inboxQuery.data?.unread_count ?? 0;
 
-  // 알림함에 다녀오면 읽음 처리가 반영되도록 다시 조회한다.
+  // 홈은 탭을 옮겨도 언마운트되지 않아, 처음 읽은 값이 계속 남는다. 그래서
+  // 카탈로그에서 구독을 담고 돌아와도 총액과 카드가 옛날 그대로였다.
+  // 화면에 들어올 때마다 다시 읽는다.
   const refetchInbox = inboxQuery.refetch;
+  const refetchSubs = subsQuery.refetch;
+  const refetchOverview = overviewQuery.refetch;
   useFocusEffect(
     React.useCallback(() => {
       refetchInbox();
+      refetchSubs();
+      refetchOverview();
       // 알림 설정과 예산은 계정에 딸린 값이라 웹에서 바꿀 수도 있다. 지금까지는
       // 설정 탭을 들러야만 갱신돼서, 웹에서 예산을 바꿔도 홈은 옛 값을 보여줬다.
       syncFromServer();
-    }, [refetchInbox, syncFromServer])
+    }, [refetchInbox, refetchSubs, refetchOverview, syncFromServer])
   );
 
   // ── 구독 브리핑 '새 소식' 점 ──

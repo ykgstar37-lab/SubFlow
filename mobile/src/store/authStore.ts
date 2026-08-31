@@ -68,7 +68,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUser: (user) => set({ user }),
 
   logout: async () => {
-    await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
+    // 온보딩 안내는 기기에 '봤음'으로 남는데, 로그아웃 뒤 새로 가입한 사람은
+    // 앱을 처음 쓰는 사람이다. 앞사람이 봤다는 이유로 안내를 건너뛰면 안 된다.
+    await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'subflow-onboarded']);
     set({ token: null, user: null, isAuthenticated: false });
   },
 }));
