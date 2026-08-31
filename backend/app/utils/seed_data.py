@@ -440,10 +440,13 @@ DEFAULT_SERVICES = {
             "logo_url": "/logos/appledeveloper.png",
             "is_popular": False,
             "plans": [
-                # 한국에서는 원화로 청구된다(사용자 실제 결제액 확인).
-                # 국내 표시가라 부가세 포함이다.
-                {"name": "개인·조직 (연간)", "price": 129000, "currency": "KRW",
-                 "billing_cycle": "YEARLY"},
+                # 애플이 공개한 정가. 다른 해외 서비스와 같게 원 통화로 두고,
+                # 화면의 '원화로' 버튼이 그때 환율로 환산해 보여준다.
+                # 부가세를 따로 더하지 않는다 — 애플은 이 금액 그대로 청구한다.
+                # (한국 실제 청구액은 ₩129,000으로 환율 환산값과는 다르다.
+                #  담은 뒤 각자 청구서 금액으로 고쳐 쓰면 된다.)
+                {"name": "개인·조직 (연간)", "price": 99, "currency": "USD",
+                 "billing_cycle": "YEARLY", "vat_included": True},
             ],
         },
         {
