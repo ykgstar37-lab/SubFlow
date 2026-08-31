@@ -21,7 +21,6 @@ class Settings(BaseSettings):
             v = base + ("?" + "&".join(kept) if kept else "")
         return v
     SECRET_KEY: str = "your-secret-key-change-in-production"
-    ANTHROPIC_API_KEY: str = ""  # (미사용) 과거 Claude 요약용 슬롯
     OPENAI_API_KEY: str = ""  # 설정 시 AI 뉴스 제목·기사 요약을 OpenAI로 생성 (미설정이면 원문/폴백 유지)
 
     # 이메일 발송 (SMTP) — SMTP_HOST가 비면 발송은 no-op이고 링크만 로그에 남는다.

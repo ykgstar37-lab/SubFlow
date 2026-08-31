@@ -49,3 +49,13 @@ marketing/
 
 # CDP로 Expo 웹을 붙잡아 스크린샷·영상을 뽑는 스크래치 스크립트
 mobile/_*.js
+
+# 개인 메모·리서치 — 로컬에만 둔다
+/memo.md
+/TODO.md
+/INTEGRATION_RESEARCH.md
+/구독 서비스.txt
+
+# 루트에 실수로 npm install 하면 다시 생기는 것
+/package.json
+/package-lock.json

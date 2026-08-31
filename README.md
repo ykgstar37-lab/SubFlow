@@ -1,123 +1,255 @@
-# SubFlow - 구독 관리 플랫폼
+<div align="center">
 
-개인 구독 서비스(Netflix, Spotify, YouTube Premium 등)를 한곳에서 관리하고, 월별 지출을 분석하며, 결제일 알림을 받을 수 있는 풀스택 웹 애플리케이션입니다.
+<img src="brand/subflow-logo-point.png" alt="SubFlow" width="260">
+
+**흩어진 구독료를 한 곳에 모아, 매달 얼마가 빠져나가는지 보여주는 구독 관리 서비스**
+
+웹 · iOS · Android를 하나의 API로 묶은 풀스택 개인 프로젝트
+
+[![Web](https://img.shields.io/badge/Web-app.mysubflow.app-4A90D9)](https://app.mysubflow.app)
+[![Landing](https://img.shields.io/badge/Landing-mysubflow.app-C4DCF2)](https://mysubflow.app)
+[![API](https://img.shields.io/badge/API-api.mysubflow.app-1A1A2E)](https://api.mysubflow.app/docs)
+![iOS](https://img.shields.io/badge/iOS-App_Store_심사중-lightgrey)
+![License](https://img.shields.io/badge/License-All_rights_reserved-red)
+
+<img src="landing/shots/web.png" alt="웹 대시보드" width="720">
+
+</div>
+
+---
+
+## 무엇을 푸는가
+
+구독은 한 번에 하나씩 늘어난다. 넷플릭스 하나, 스포티파이 하나, 어느새 노션과 ChatGPT까지.
+그래서 **"내가 지금 구독에 매달 얼마를 쓰고 있지?"**에 바로 답할 수 있는 사람이 드물다.
+결제일은 기억나지 않고, 무료 체험은 조용히 유료로 넘어가고, 해외 서비스는 환율에 부가세까지 붙는다.
+
+SubFlow는 카드사 연동 없이 **사용자가 직접 기록하는 방식**으로 이 문제를 푼다.
+금융기관에 연결하지 않으니 민감정보를 다루지 않고, 대신 카탈로그·환율·부가세·알림으로 기록 비용을 최대한 낮췄다.
 
 ## 주요 기능
 
-- **구독 관리** - 88종 서비스 카탈로그(요금제 179개)에서 구독 추가, 커스텀 구독 직접 입력
-- **대시보드** - 월/연간 총 지출, 활성 구독 수, 다음 결제일 요약
-- **지출 분석** - 카테고리별 지출 비중, 월별 지출 추이 차트
-- **캘린더** - 과거/미래 결제일을 캘린더에서 한눈에 확인
-- **타임라인** - 구독 변경 이력 추적 (생성, 플랜 변경, 해지 등)
-- **예산 관리** - 월 예산 설정 및 초과 알림
-- **환율 추적** - 외화 구독의 환율 변동 알림 (KRW 자동 변환)
-- **중복 감지** - 같은 카테고리 내 겹치는 서비스 탐지
-- **절약 제안** - 비용 절감 추천
-- **알림 설정** - 결제 N일 전 알림, 이메일/푸시 알림 토글 (실제 발송)
-- **뉴스 위젯 + AI 요약** - 구독 서비스 관련 뉴스 제공, OpenAI 기반 기사 요약 모달
+| | 기능 | 설명 |
+|:--:|---|---|
+| 📚 | **서비스 카탈로그** | 15개 카테고리 · **98종 서비스 · 196개 요금제** 내장. 없는 요금제는 직접 입력 |
+| 📊 | **대시보드** | 월/연 총지출, 활성 구독 수, 다가오는 결제, 구독 건강 점수 |
+| 📈 | **지출 분석** | 카테고리별 비중, 3/6/12/24개월 추이, 절약 제안, 중복 구독 감지 |
+| 📅 | **결제 캘린더** | 과거·미래 결제일을 달력에서 한눈에 |
+| 🕐 | **타임라인** | 가입·요금제 변경·일시정지·해지 이력 추적 |
+| 💱 | **환율 + 부가세** | 외화 구독을 실시간 환율로 KRW 환산, 표시가에 붙는 부가세 10% 반영 |
+| 👥 | **분담 계산** | 가족·팀 공유 구독의 1인당 실부담액 계산 |
+| 🔔 | **알림** | 결제 N일 전 알림을 **이메일 + 푸시로 실제 발송**, 주간 다이제스트 |
+| 💰 | **예산** | 월 예산 설정 및 초과 경고 |
+| 📰 | **뉴스 + AI 요약** | 구독 서비스 관련 뉴스, OpenAI 기반 한 줄 요약 |
+| 📤 | **내보내기** | 구독 목록 CSV (UTF-8 BOM, Excel 호환) |
+| 🌗 | **기타** | 다크모드, 한/영 다국어, 첫 가입 온보딩, 오류 신고(사진 첨부) |
 
-## 모바일 앱 (React Native)
+> 전 기능 무료. 인앱 결제·광고·트래킹 SDK가 없다.
 
-Expo + React Native 기반 크로스플랫폼 모바일 앱으로, 위 주요 기능을 모바일 환경에 최적화하여 제공합니다.
-
-### 모바일 기술 스택
-
-| 기술 | 용도 |
-|------|------|
-| Expo SDK | React Native 프레임워크 |
-| Expo Router | 파일 기반 라우팅 |
-| Zustand + AsyncStorage | 상태 관리 및 로컬 저장 |
-| Axios | HTTP 클라이언트 (JWT 인터셉터) |
-| expo-linear-gradient | 그라디언트 UI |
-| i18n (한/영) | 다국어 지원 |
-
-### 모바일 화면 구성
-
-| 화면 | 설명 |
-|------|------|
-| **홈 (대시보드)** | 구독 카드 페이저, 지출 비중, 결제 일정, 환율 변동 알림 |
-| **구독 관리** | 활성/일시정지/해지 구독 목록, 상태 관리 |
-| **서비스 카탈로그** | 88종 서비스 탐색, 카탈로그/커스텀 구독 추가 |
-| **지출 분석** | 카테고리별 지출, 월별 추이, 절약 인사이트 + 중복 감지, 예산 현황 |
-| **캘린더/타임라인** | 결제일 캘린더 뷰 ↔ 구독 변경 이력 타임라인 탭 전환 |
-| **설정** | 알림(푸시/이메일), 예산, 언어, 환율 알림 설정 |
-
-### 모바일 앱 실행
-
-```bash
-cd mobile
-npm install
-npx expo start
-```
-
-- Expo Go 앱으로 QR 코드 스캔하여 실행
-- `w` 키로 웹 브라우저 실행 가능
-
-## 현재 아키텍처
+## 아키텍처
 
 ```mermaid
 flowchart LR
     User["사용자"]
 
     subgraph Clients["클라이언트"]
-        Web["Web App<br/>React 19 + Vite + Zustand"]
-        Mobile["Mobile App<br/>Expo + React Native + AsyncStorage"]
+        Web["Web App<br/>React 19 + Vite<br/><i>Cloudflare Pages</i>"]
+        Mobile["Mobile App<br/>Expo + React Native<br/><i>App Store / Play</i>"]
+        Landing["Landing + 약관<br/><i>Cloudflare Pages</i>"]
     end
 
-    subgraph ApiLayer["API 서버"]
-        FastAPI["FastAPI App<br/>CORS + Lifespan Seed"]
-        Auth["Auth Router<br/>JWT + bcrypt"]
-        Services["Services Router<br/>서비스/요금제 카탈로그"]
-        Subs["Subscriptions Router<br/>구독 CRUD + 캘린더 + 타임라인"]
-        Analytics["Analytics Router<br/>지출/중복/예산/절약 분석"]
-        Notifications["Notifications Router<br/>알림 설정 + 예정 결제"]
-        Categories["Categories Router<br/>카테고리"]
-        News["News Router<br/>뉴스 위젯"]
+    subgraph Api["API 서버 · Railway"]
+        FastAPI["FastAPI<br/>CORS · Rate limit · Lifespan seed"]
+        Routers["Routers<br/>auth · services · subscriptions<br/>analytics · notifications<br/>categories · news · feedback"]
+        Sched["APScheduler<br/>갱신 · 알림 발송 · 뉴스 · 다이제스트"]
     end
 
-    subgraph Domain["도메인/서비스 계층"]
-        AuthService["auth_service"]
-        SubscriptionService["subscription_service"]
-        AnalyticsService["analytics_service"]
-        NotificationService["notification_service"]
-        ExchangeRate["exchange_rate util"]
-        SeedData["seed_data util"]
+    subgraph Domain["도메인 계층"]
+        Svc["auth · subscription · analytics<br/>notification · renewal · digest<br/>news · ai_summary · delivery"]
+        Utils["cost · vat · exchange_rate<br/>seed_data · visibility"]
     end
 
-    subgraph Data["데이터 계층"]
-        SQLAlchemy["SQLAlchemy 2.0 Async ORM"]
-        Alembic["Alembic Migrations"]
-        Postgres[("PostgreSQL 16<br/>Docker Compose")]
+    subgraph Data["데이터"]
+        ORM["SQLAlchemy 2.0 async + Alembic"]
+        PG[("PostgreSQL 16")]
     end
 
-    User --> Web
-    User --> Mobile
-    Web -->|"Axios /api/v1<br/>Bearer access token + refresh"| FastAPI
-    Mobile -->|"Axios /api/v1<br/>Bearer access token"| FastAPI
+    subgraph Ext["외부 서비스"]
+        Resend["Resend<br/>메일 발송"]
+        Expo["Expo Push<br/>APNs / FCM"]
+        FX["Frankfurter<br/>환율"]
+        OAI["OpenAI<br/>gpt-4o-mini"]
+        RSS["Google News RSS"]
+    end
 
-    FastAPI --> Auth
-    FastAPI --> Services
-    FastAPI --> Subs
-    FastAPI --> Analytics
-    FastAPI --> Notifications
-    FastAPI --> Categories
-    FastAPI --> News
+    User --> Web & Mobile & Landing
+    Web -->|"Axios /api/v1<br/>access + refresh token"| FastAPI
+    Mobile -->|"Axios /api/v1<br/>access + refresh token"| FastAPI
 
-    Auth --> AuthService
-    Subs --> SubscriptionService
-    Analytics --> AnalyticsService
-    Notifications --> NotificationService
-    Services --> SeedData
-    AnalyticsService --> ExchangeRate
-
-    AuthService --> SQLAlchemy
-    SubscriptionService --> SQLAlchemy
-    AnalyticsService --> SQLAlchemy
-    NotificationService --> SQLAlchemy
-    SeedData --> SQLAlchemy
-    SQLAlchemy --> Postgres
-    Alembic --> Postgres
+    FastAPI --> Routers --> Svc --> ORM --> PG
+    FastAPI --> Sched --> Svc
+    Svc --> Utils
+    Svc --> Resend & Expo & OAI & RSS
+    Utils --> FX
 ```
+
+## 기술 스택
+
+<table>
+<tr><th align="left">Backend</th><th align="left">Web</th><th align="left">Mobile</th></tr>
+<tr valign="top"><td>
+
+Python 3.13<br>
+FastAPI 0.115<br>
+SQLAlchemy 2.0 (async)<br>
+Alembic · PostgreSQL 16<br>
+Pydantic v2<br>
+JWT (python-jose) + bcrypt<br>
+slowapi (rate limit)<br>
+APScheduler<br>
+httpx · aiosmtplib<br>
+OpenAI SDK<br>
+pytest + pytest-asyncio
+
+</td><td>
+
+React 19 + TypeScript<br>
+Vite 8<br>
+Zustand<br>
+React Router 7<br>
+Tailwind CSS 4<br>
+Recharts<br>
+Axios (JWT 인터셉터)<br>
+lucide-react<br>
+react-hot-toast<br>
+date-fns
+
+</td><td>
+
+Expo SDK 54<br>
+React Native 0.81<br>
+Expo Router (파일 기반)<br>
+Zustand + AsyncStorage<br>
+expo-notifications<br>
+expo-updates (OTA)<br>
+Reanimated 4<br>
+react-native-svg<br>
+Axios<br>
+i18n (한/영)<br>
+EAS Build / Submit
+
+</td></tr>
+</table>
+
+**인프라** — Railway (API + PostgreSQL) · Cloudflare Pages (웹앱 · 랜딩 · 약관) · Resend (메일, 도쿄 리전) · Docker Compose (로컬 풀스택)
+
+## 시작하기
+
+### 사전 요구사항
+
+Python 3.11+ · Node.js 18+ · Docker Desktop
+
+### 방법 1 — 도커로 한 번에
+
+```bash
+cp .env.example .env      # SECRET_KEY 등을 채운다
+docker compose up -d --build
+```
+
+웹 http://localhost:3000 (nginx가 SPA 서빙 + `/api` → 백엔드 프록시)
+
+### 방법 2 — 로컬 개발
+
+```bash
+# 1. DB
+docker compose up db -d
+
+# 2. 백엔드
+cd backend
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload                     # http://localhost:8000/docs
+
+# 3. 웹
+cd frontend && npm install && npm run dev         # http://localhost:5173
+
+# 4. 모바일
+cd mobile && npm install && npx expo start        # Expo Go로 QR 스캔
+```
+
+서비스 카탈로그(98종/196요금제)는 서버 기동 시 lifespan 훅이 자동으로 시드한다.
+
+### 테스트
+
+```bash
+cd backend && pytest        # 14개 파일 / 116개 테스트 — 인증·구독·분석·갱신·부가세·알림
+```
+
+테스트는 `subscription_test_db`를 따로 만들어 쓴다. `.env`에서 `DB_PORT`나
+`POSTGRES_PASSWORD`를 기본값에서 바꿨다면 `DATABASE_URL`과 `TEST_DATABASE_URL`을
+함께 넘겨야 한다 — 둘 중 하나만 넘기면 테스트 DB 생성 단계에서 막힌다.
+
+## 배포
+
+| 대상 | 위치 | 명령 |
+|---|---|---|
+| API | Railway → `api.mysubflow.app` | `railway up` (깃 연동 아님, 수동 배포) |
+| 웹앱 | Cloudflare Pages → `app.mysubflow.app` | `cd frontend && npm run build` 후 업로드 |
+| 랜딩·약관 | Cloudflare Pages → `mysubflow.app` | `landing/`, `legal/` 정적 배포 |
+| iOS/Android | EAS Build → App Store / Play | `npx eas-cli build -p ios --profile production`<br>`npx eas-cli submit -p ios --latest` |
+
+빌드 번호는 `eas.json`의 `appVersionSource: remote` + `autoIncrement`로 EAS가 관리한다 — `app.json`에서 직접 올리지 않는다.
+
+## 프로젝트 구조
+
+```
+SubFlow/
+├── backend/                   # FastAPI
+│   ├── app/
+│   │   ├── main.py            # 앱 진입점 · CORS · lifespan 시드 · 스케줄러
+│   │   ├── config.py          # pydantic-settings 환경 설정
+│   │   ├── scheduler.py       # APScheduler 잡 정의
+│   │   ├── core/              # security(JWT/bcrypt), deps(DB 세션·현재 유저)
+│   │   ├── models/            # SQLAlchemy ORM 11종
+│   │   ├── schemas/           # Pydantic 요청/응답
+│   │   ├── routers/           # auth · services · subscriptions · analytics
+│   │   │                      # notifications · categories · news · feedback
+│   │   ├── services/          # 비즈니스 로직 (analytics, renewal, digest, delivery …)
+│   │   ├── utils/             # cost · vat · exchange_rate · seed_data · visibility
+│   │   ├── messages.py        # 사용자 노출 문구 단일 소스 (메일·푸시·알림)
+│   │   └── tests/             # pytest 14 파일
+│   └── alembic/versions/      # 마이그레이션 21개
+├── frontend/                  # React 19 + Vite 웹앱
+│   └── src/{api,store,pages,components,hooks,types}
+├── mobile/                    # Expo + React Native
+│   ├── app/{(auth),(tabs)}    # Expo Router — 로그인/가입 · 6개 탭
+│   └── src/{components,constants,hooks,i18n,services,store,types}
+├── landing/                   # 랜딩 페이지 (정적)
+├── legal/                     # 이용약관 · 개인정보처리방침
+├── brand/                     # 로고·마크 에셋
+├── app_icons/                 # iOS AppIcon.appiconset · Android mipmap
+└── docker-compose.yml         # db + backend + web(nginx)
+```
+
+## API
+
+모든 엔드포인트는 `/api/v1` 프리픽스를 쓴다. 전체 명세는 [Swagger](https://api.mysubflow.app/docs)에서 확인할 수 있다.
+
+| 그룹 | 주요 엔드포인트 |
+|---|---|
+| **Auth** | `POST /auth/register` · `/login` · `/refresh` · `/verify-email` · `/forgot-password` · `/reset-password`<br>`GET·PUT·DELETE /auth/me` |
+| **Services** | `GET /services` · `/services/popular` · `/services/search` · `/services/{id}/price-history` |
+| **Subscriptions** | `GET·POST /subscriptions` · `POST /subscriptions/from-catalog` · `GET /subscriptions/export`<br>`/upcoming` · `/calendar-events` · `/timeline` · `/trials` · `/{id}/history` |
+| **Analytics** | `/analytics/overview` · `/spending-trend` · `/category-breakdown` · `/overlaps`<br>`/savings-suggestions` · `/budget-status` · `/price-changes` · `/exchange-rate-alerts` |
+| **Notifications** | `GET·PUT /notifications/settings` · `/inbox` · `PUT /push-token` · `POST /deliver` · `/digest` |
+| **News** | `GET /news` · `POST /news/summary` |
+| **Feedback** | `POST /feedback/contact` (오류 신고 · 사진 첨부) |
+
+## 데이터 모델
+
+<details>
+<summary>ER 다이어그램 (테이블 11개)</summary>
 
 ```mermaid
 erDiagram
@@ -140,8 +272,8 @@ erDiagram
         string email UK
         string username
         boolean is_active
+        boolean email_verified
     }
-
     SUBSCRIPTIONS {
         uuid id PK
         uuid user_id FK
@@ -153,9 +285,9 @@ erDiagram
         string currency
         enum billing_cycle
         enum status
+        int member_count
         date next_billing_date
     }
-
     SERVICES {
         int id PK
         int category_id FK
@@ -164,7 +296,6 @@ erDiagram
         string cancel_url
         boolean is_popular
     }
-
     SERVICE_PLANS {
         int id PK
         int service_id FK
@@ -174,23 +305,21 @@ erDiagram
         enum billing_cycle
         boolean is_active
     }
-
     CATEGORIES {
         int id PK
         string name UK
         string icon
         string color
     }
-
     NOTIFICATION_SETTINGS {
         uuid id PK
         uuid user_id FK
         int notify_days_before
         boolean email_notifications
         boolean push_notifications
+        string push_token
         int budget_monthly
     }
-
     PAYMENT_HISTORY {
         uuid id PK
         uuid subscription_id FK
@@ -199,7 +328,6 @@ erDiagram
         string currency
         date paid_at
     }
-
     SUBSCRIPTION_HISTORY {
         uuid id PK
         uuid subscription_id FK
@@ -207,7 +335,6 @@ erDiagram
         string event_type
         string description
     }
-
     PLAN_PRICE_HISTORY {
         int id PK
         int plan_id FK
@@ -215,7 +342,6 @@ erDiagram
         string currency
         date effective_date
     }
-
     NOTIFICATIONS {
         uuid id PK
         uuid user_id FK
@@ -224,7 +350,6 @@ erDiagram
         string body
         string link
     }
-
     NEWS_CACHE {
         int id PK
         string title
@@ -235,202 +360,74 @@ erDiagram
     }
 ```
 
-## 기술 스택
+</details>
 
-### Frontend (Web)
-| 기술 | 용도 |
-|------|------|
-| React 19 + TypeScript | UI 프레임워크 |
-| Vite | 빌드 도구 |
-| Zustand | 상태 관리 |
-| React Router DOM | 라우팅 |
-| Axios | HTTP 클라이언트 (JWT 인터셉터 포함) |
-| Recharts | 차트/그래프 |
-| Tailwind CSS | 스타일링 |
-| Lucide Icons | 아이콘 |
+| 테이블 | 역할 |
+|---|---|
+| `users` | 계정 (UUID · email · 해시 비밀번호 · 인증 여부) |
+| `categories` | 서비스 카테고리 15종 |
+| `services` / `service_plans` | 카탈로그 98종 / 요금제 196개 |
+| `plan_price_history` | 요금제 인상·인하 이력 |
+| `subscriptions` | 사용자 구독 (active / paused / cancelled / trial) |
+| `payment_history` | 자동 갱신 시 기록되는 결제 이력 |
+| `subscription_history` | 가입·변경·해지 이벤트 |
+| `notification_settings` / `notifications` | 알림 설정과 발송 레코드 |
+| `news_cache` | 뉴스 캐시 (link 기준 dedup, 6시간 갱신) |
 
-### Backend
-| 기술 | 용도 |
-|------|------|
-| FastAPI | 비동기 API 프레임워크 |
-| SQLAlchemy 2.0 (async) | ORM |
-| Alembic | DB 마이그레이션 |
-| PostgreSQL 16 | 데이터베이스 |
-| JWT + bcrypt | 인증/보안 |
-| Pydantic | 데이터 검증 |
-| OpenAI API | 뉴스 기사 AI 요약 |
-| aiosmtplib (SMTP) | 이메일 알림 발송 |
-| slowapi | 로그인/회원가입 Rate limiting |
-| APScheduler | 알림/갱신 스케줄링 |
-| httpx | 외부 API 호출 (환율·뉴스) |
+## 백그라운드 작업
 
-### 인프라
-| 기술 | 용도 |
-|------|------|
-| Docker Compose | 전체 스택 오케스트레이션 (DB + 백엔드 + 웹) |
-| nginx | 프론트엔드 정적 빌드 서빙 + `/api` → 백엔드 프록시 (same-origin) |
-| PostgreSQL 16 (Docker) | 데이터베이스 |
+APScheduler가 API 프로세스 안에서 함께 돈다 (`app/scheduler.py`, 시간대 UTC).
+
+| 주기 | 작업 |
+|---|---|
+| 매일 00:10 | 지난 결제일 구독을 주기만큼 자동 전진 (말일 보정) + 경과 주기마다 결제 이력 기록 |
+| 10분마다 | 대기 중인 알림을 이메일·푸시로 발송 |
+| 6시간마다 | 뉴스 캐시 갱신 + AI 요약 생성 |
+| 월요일 00:00 | 주간 지출 다이제스트 메일 |
+
+갱신·뉴스 작업은 기동 직후 1회도 함께 실행된다.
 
 ## 보안
 
-- **인증**: JWT (access + refresh) + bcrypt 비밀번호 해싱
-- **비밀번호 강도 검증**: 최소 8자 + 영문 + 숫자
-- **Rate limiting**: 로그인 10회/분, 회원가입 5회/분 (slowapi)
-- **사용자 열거 방지**: 로그인 실패 응답 401 통일 + 타이밍 완화
-- **시크릿 분리**: `SECRET_KEY`·DB 비밀번호 등 환경변수화 (기본값 사용 시 기동 경고)
-- **프록시 스푸핑 대비**: `X-Forwarded-For` 신뢰를 `TRUST_PROXY` 플래그로 제어 (기본 off)
+- **인증** — JWT access(30분) + refresh(60일), bcrypt 해싱, 이메일 인증 및 비밀번호 재설정 토큰
+- **비밀번호 정책** — 최소 8자 + 영문 + 숫자
+- **Rate limiting** — 로그인 10회/분, 회원가입 5회/분 (slowapi)
+- **사용자 열거 방지** — 로그인 실패 응답 401 통일 + 타이밍 완화
+- **시크릿 분리** — `SECRET_KEY`·DB 비밀번호 환경변수화, 기본값 사용 시 기동 경고
+- **프록시 스푸핑 대비** — `X-Forwarded-For` 신뢰를 `TRUST_PROXY` 플래그로 제어 (기본 off)
+- **금융정보 미취급** — 카드·계좌·PG 연동 없음. 모든 금액은 사용자가 직접 입력한 숫자
 
 ## 환경 변수
 
-`docker compose`는 프로젝트 루트의 `.env` 또는 셸 환경변수를 읽습니다. 주요 항목:
+`.env.example`을 복사해서 쓴다. 주요 항목만:
 
 | 변수 | 기본값 | 설명 |
-|------|--------|------|
-| `SECRET_KEY` | (개발용 기본값) | JWT 서명 키 — **운영 시 반드시 변경** |
-| `POSTGRES_PASSWORD` | `postgres` | DB 비밀번호 |
-| `ALLOWED_ORIGINS` | `localhost:5173,localhost:3000` | CORS 허용 도메인 (콤마 구분) |
-| `OPENAI_API_KEY` | (빈값) | 설정 시 뉴스 AI 요약 활성화 (미설정 시 원문 폴백) |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | — | 이메일 알림 발송 SMTP 설정 |
-| `TRUST_PROXY` | `false` | 리버스 프록시 뒤 배포 시 `X-Forwarded-For` 신뢰 여부 |
-| `WEB_PORT` | `3000` | 운영 웹(nginx) 노출 포트 |
+|---|---|---|
+| `SECRET_KEY` | (개발용) | JWT 서명 키 — **운영에서 반드시 교체** |
+| `DATABASE_URL` | localhost | `postgresql+asyncpg://…` |
+| `ALLOWED_ORIGINS` | localhost | CORS 허용 도메인 (콤마 구분) |
+| `OPENAI_API_KEY` | (빈값) | 설정 시 뉴스 AI 요약 활성화, 미설정 시 원문 폴백 |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_USER` `SMTP_PASSWORD` `SMTP_FROM` | — | 메일 발송 (운영은 Resend SMTP). 미설정 시 no-op |
+| `TRUST_PROXY` | `false` | 리버스 프록시 뒤 배포 시 `true` |
+| `WEB_PORT` | `3000` | 도커 nginx 노출 포트 |
 
-## 시작하기
+⚠️ PowerShell에서 `Set-Content`로 `.env`를 고치면 BOM이 붙어 첫 줄 키가 깨진다. `-Encoding utf8NoBOM`을 쓰거나 에디터로 편집할 것.
 
-### 사전 요구사항
-- Python 3.11+
-- Node.js 18+
-- Docker Desktop (DB / 전체 스택용)
+## 로드맵
 
-### 전체 스택 한 번에 실행 (운영/도커)
+- [x] 웹앱 배포 (Cloudflare Pages)
+- [x] API 배포 (Railway) + 커스텀 도메인
+- [x] iOS 빌드 · App Store 제출
+- [ ] iOS 심사 통과 후 출시
+- [ ] Android — Play Console 등록 및 출시
+- [ ] 소셜 로그인 (Google / Kakao) — 각 개발자 앱 자격증명 발급 후
 
-```bash
-# 루트에 .env 작성 (SECRET_KEY, OPENAI_API_KEY, SMTP 등) 후
-docker compose up -d --build
-```
+## 라이선스
 
-- 웹: http://localhost:3000 (nginx가 SPA 서빙 + `/api` → 백엔드 프록시)
-- DB · 백엔드 · 웹 컨테이너가 함께 기동됩니다.
+[All rights reserved](LICENSE). 학습·참고 목적의 코드 열람은 자유롭지만, 복제·배포·상업적 이용은 허용하지 않는다.
 
-아래는 개발용 로컬 실행 방법입니다.
+## 문의
 
-### 1. PostgreSQL 데이터베이스 실행
-
-```bash
-docker compose up db -d
-```
-
-### 2. 백엔드 실행
-
-```bash
-cd backend
-
-# 가상환경 생성 및 활성화
-python -m venv venv
-source venv/bin/activate        # macOS/Linux
-# venv\Scripts\activate         # Windows
-
-# 의존성 설치
-pip install -r requirements.txt
-
-# DB 마이그레이션 실행
-alembic upgrade head
-
-# 서버 시작
-uvicorn app.main:app --reload
-```
-
-- API 서버: http://localhost:8000
-- API 문서 (Swagger): http://localhost:8000/docs
-
-### 3. 프론트엔드 실행
-
-```bash
-cd frontend
-
-# 의존성 설치
-npm install
-
-# 개발 서버 시작
-npm run dev
-```
-
-- 프론트엔드: http://localhost:5173
-
-## 프로젝트 구조
-
-```
-SubFlow/
-├── mobile/
-│   ├── app/
-│   │   ├── (auth)/               # 로그인/회원가입 화면
-│   │   ├── (tabs)/               # 탭 화면 (홈, 구독, 카탈로그, 분석, 캘린더, 설정)
-│   │   └── _layout.tsx           # 루트 레이아웃
-│   ├── src/
-│   │   ├── components/           # 재사용 컴포넌트 (ServiceLogo 등)
-│   │   ├── constants/            # 테마, 색상 상수
-│   │   ├── hooks/                # 커스텀 훅 (useApi, useTranslation)
-│   │   ├── i18n/                 # 다국어 번역 (한/영)
-│   │   ├── services/             # API 클라이언트
-│   │   ├── store/                # Zustand 상태 관리
-│   │   └── types/                # TypeScript 타입
-│   └── package.json
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI 앱 진입점
-│   │   ├── config.py            # 환경 설정
-│   │   ├── database.py          # DB 연결 (async)
-│   │   ├── core/
-│   │   │   ├── security.py      # JWT 토큰, 비밀번호 해싱
-│   │   │   └── deps.py          # 의존성 주입 (DB 세션, 현재 유저)
-│   │   ├── models/              # SQLAlchemy ORM 모델
-│   │   ├── schemas/             # Pydantic 요청/응답 스키마
-│   │   ├── services/            # 비즈니스 로직
-│   │   ├── routers/             # API 엔드포인트
-│   │   └── utils/
-│   │       ├── seed_data.py     # 서비스 카탈로그 시드 데이터 (88종 / 요금제 179개)
-│   │       └── exchange_rate.py # 환율 API (Frankfurter)
-│   ├── alembic/                 # DB 마이그레이션
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── api/                 # API 클라이언트 모듈
-│   │   ├── store/               # Zustand 상태 관리
-│   │   ├── pages/               # 페이지 컴포넌트
-│   │   ├── components/          # 재사용 UI 컴포넌트
-│   │   ├── hooks/               # 커스텀 훅
-│   │   └── types/               # TypeScript 타입 정의
-│   └── package.json
-├── app_icons/                  # 앱 아이콘 세트 (iOS AppIcon.appiconset / Android mipmap) + 원본 소스
-└── docker-compose.yml
-```
-
-## API 엔드포인트 요약
-
-모든 API는 `/api/v1` 프리픽스를 사용합니다.
-
-| 그룹 | 주요 엔드포인트 | 설명 |
-|------|----------------|------|
-| **Auth** | `POST /auth/register`, `POST /auth/login` | 회원가입, 로그인 (JWT) |
-| **Services** | `GET /services`, `GET /services/popular` | 서비스 카탈로그 조회 |
-| **Subscriptions** | `GET /subscriptions`, `POST /subscriptions/from-catalog` | 구독 CRUD |
-| **Categories** | `GET /categories` | 카테고리 목록 |
-| **Analytics** | `GET /analytics/overview`, `GET /analytics/spending-trend` | 지출 분석 |
-| **Notifications** | `GET /notifications/settings` | 알림 설정 |
-| **News** | `GET /news`, `POST /news/summary` | 뉴스 위젯 + AI 요약 |
-
-## 데이터베이스 스키마
-
-테이블 11개:
-
-- **users** - 사용자 계정 (UUID, email, password)
-- **categories** - 서비스 카테고리 (영상, 음악, 클라우드 등)
-- **services** - 서비스 카탈로그 (Netflix, Spotify 등 88종)
-- **service_plans** - 서비스별 요금제 (Basic, Standard, Premium 등)
-- **plan_price_history** - 요금제 가격 변동 이력 (인상/인하 추적)
-- **subscriptions** - 사용자의 활성 구독 (상태: active/paused/cancelled/trial)
-- **payment_history** - 결제 이력
-- **subscription_history** - 구독 변경 이력 (생성, 플랜변경, 해지 등)
-- **notification_settings** - 알림 설정 (결제 N일 전 알림, 월 예산)
-- **notifications** - 생성/발송된 알림 레코드 (중복·요금변경·AI뉴스·체험만료·예산·결제임박·환율)
-- **news_cache** - 뉴스 위젯 캐시 (AI 소식 / 요금 인상 뉴스, link 기준 dedup)
-
+[yge0307@gmail.com](mailto:yge0307@gmail.com) · [mysubflow.app](https://mysubflow.app)
+</content>
+</invoke>
