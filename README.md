@@ -428,7 +428,8 @@ APScheduler가 API 프로세스 안에서 함께 돈다 (`app/scheduler.py`, 시
 
 ## 문의
 
-[yge0307@gmail.com](mailto:yge0307@gmail.com) · [mysubflow.app](https://mysubflow.app)
-[hyebing883@gmail.com](mailto:hyebing883@gmail.com)
+[mysubflow.app](https://mysubflow.app)
+<br>
+[yge0307@gmail.com](mailto:yge0307@gmail.com) · [hyebing883@gmail.com](mailto:hyebing883@gmail.com)
 </content>
 </invoke>
