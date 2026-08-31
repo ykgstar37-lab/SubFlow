@@ -38,6 +38,7 @@ const LOGOS: Record<string, ImageSourcePropType> = {
   'Vercel': require('../../assets/logos/vercel.png'),
   'Netlify': require('../../assets/logos/netlify.png'),
   'AWS': require('../../assets/logos/aws.png'),
+  'Railway': require('../../assets/logos/railway.png'),
   'DigitalOcean': require('../../assets/logos/digitalocean.png'),
   'Cloudflare': require('../../assets/logos/cloudflare.png'),
   'Microsoft 365': require('../../assets/logos/microsoft365.png'),

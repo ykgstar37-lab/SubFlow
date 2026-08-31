@@ -538,6 +538,20 @@ DEFAULT_SERVICES = {
             ],
         },
         {
+            "name": "Railway",
+            "description": "깃 저장소를 붙이면 바로 배포되는 앱·DB 호스팅 플랫폼",
+            "website_url": "https://railway.com",
+            "cancel_url": "https://railway.com/workspace",
+            "logo_url": "/logos/railway.png",
+            "is_popular": False,
+            "plans": [
+                # 구독료 안에 같은 금액만큼의 사용량 크레딧이 들어 있고, 그걸 넘긴
+                # 만큼만 추가로 청구된다. 여기 적는 건 매달 고정으로 나가는 기본료다.
+                {"name": "Hobby", "price": 5, "currency": "USD", "billing_cycle": "MONTHLY"},
+                {"name": "Pro (1인)", "price": 20, "currency": "USD", "billing_cycle": "MONTHLY"},
+            ],
+        },
+        {
             "name": "DigitalOcean",
             "description": "개발자 친화적 클라우드 호스팅 플랫폼",
             "website_url": "https://www.digitalocean.com",
