@@ -1,21 +1,38 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { ServiceLogo } from '../../src/components/ServiceLogo';
 import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { useTranslation } from '../../src/hooks/useTranslation';
-import { useCalendarEvents, useTimeline } from '../../src/hooks/useApi';
+import { useCalendarEvents, useTimeline, useExchangeRates } from '../../src/hooks/useApi';
+import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors, Spacing, FontSize, FontWeight, Shadow, TabBarSpace } from '../../src/constants/theme';
 
 const DAYS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_KO = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+// 통화별 기호 표시 (홈 화면과 동일 규칙) — 외화 구독은 ₩가 아니라 실제 통화로 적는다
+const CURRENCY_SYMBOLS: Record<string, string> = { KRW: '₩', USD: '$', EUR: '€', JPY: '¥', GBP: '£' };
+function formatPrice(amount: number, currency: string = 'KRW') {
+  const symbol = CURRENCY_SYMBOLS[currency] ?? currency + ' ';
+  if (currency === 'KRW' || currency === 'JPY') return `${symbol}${Math.round(amount).toLocaleString()}`;
+  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** 캘린더 이벤트 하나의 금액과 통화. 필드 이름이 응답마다 달라 전부 받아 준다. */
+function eventAmount(ev: any) {
+  return {
+    amount: Number(ev.billing_amount ?? ev.amount ?? ev.cost ?? 0),
+    currency: String(ev.currency ?? 'KRW'),
+  };
+}
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -34,6 +51,21 @@ export default function CalendarScreen() {
 
   const calendarEvents = useCalendarEvents(year, month + 1);
   const timeline = useTimeline();
+  const ratesQuery = useExchangeRates();
+  const monthlyBudget = useSettingsStore(s => s.monthlyBudget);
+  const syncSettings = useSettingsStore(s => s.syncFromServer);
+
+  // 예산은 서버에 있다. 홈을 거치지 않고 이 탭부터 열어도 맞게 보이도록 여기서도 맞춘다.
+  useFocusEffect(useCallback(() => { syncSettings(); }, [syncSettings]));
+
+  // 합계는 통화가 섞이므로 원화로 환산해서 더한다. 환율을 못 받았으면
+  // 원화 구독만 더해 ₩ 표기가 거짓말이 되지 않게 한다.
+  const rates = useMemo(() => {
+    const raw = (ratesQuery.data as any)?.rates ?? {};
+    const parsed: Record<string, number> = {};
+    Object.keys(raw).forEach(k => { parsed[k] = Number(raw[k]); });
+    return parsed;
+  }, [ratesQuery.data]);
 
   // 실데이터만 (없으면 빈 배열)
   const timelineData = (timeline.data as any)?.timeline ?? (timeline.data as any) ?? [];
@@ -76,7 +108,12 @@ export default function CalendarScreen() {
   // 이번 달 합계는 day별 dedupe된 결과 기준
   const monthTotal = Object.values(paymentMap)
     .flat()
-    .reduce((s: number, e: any) => s + Number(e.cost ?? e.billing_amount ?? e.amount ?? 0), 0);
+    .reduce((sum: number, e: any) => {
+      const { amount, currency } = eventAmount(e);
+      if (currency === 'KRW') return sum + amount;
+      const rate = rates[currency];
+      return rate ? sum + amount * rate : sum;
+    }, 0);
 
   // 다가오는 결제 (이번 달, 오늘 이후)
   const upcoming = Object.entries(paymentMap)
@@ -119,13 +156,15 @@ export default function CalendarScreen() {
             <Text style={styles.subTitle}>{t('calendar.title')}</Text>
             <Text style={styles.mainTitle}>{monthName}</Text>
             <View style={styles.summaryPills}>
-              <View style={styles.pill}>
-                <Text style={styles.pillLabel}>{t('home.budget')}:</Text>
-                <Text style={styles.pillValue}>₩100K</Text>
-              </View>
+              {(monthlyBudget ?? 0) > 0 && (
+                <View style={styles.pill}>
+                  <Text style={styles.pillLabel}>{t('home.budget')}:</Text>
+                  <Text style={styles.pillValue}>₩{Number(monthlyBudget).toLocaleString()}</Text>
+                </View>
+              )}
               <View style={[styles.pill, { backgroundColor: 'rgba(255,255,255,0.7)' }]}>
                 <Text style={styles.pillLabel}>{t('calendar.thisMonth')}:</Text>
-                <Text style={styles.pillValue}>₩{monthTotal.toLocaleString()}</Text>
+                <Text style={styles.pillValue}>₩{Math.round(monthTotal).toLocaleString()}</Text>
               </View>
             </View>
           </View>
@@ -242,7 +281,7 @@ export default function CalendarScreen() {
                             </Text>
                           </View>
                           <Text style={styles.upcomingAmount}>
-                            ₩{Number(ev.billing_amount ?? ev.amount ?? ev.cost ?? 0).toLocaleString()}
+                            {formatPrice(eventAmount(ev).amount, eventAmount(ev).currency)}
                           </Text>
                         </View>
                       ))}
@@ -263,7 +302,7 @@ export default function CalendarScreen() {
                           <Text style={styles.upcomingName}>{ev.service_name}</Text>
                           <Text style={styles.upcomingDate}>{dateStr}</Text>
                         </View>
-                        <Text style={styles.upcomingAmount}>₩{Number(ev.billing_amount ?? ev.amount ?? ev.cost ?? 0).toLocaleString()}</Text>
+                        <Text style={styles.upcomingAmount}>{formatPrice(eventAmount(ev).amount, eventAmount(ev).currency)}</Text>
                       </View>
                     );
                   }) : (

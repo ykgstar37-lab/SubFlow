@@ -74,6 +74,13 @@ export function useExchangeRateAlerts() {
   return useFetch(() => analyticsAPI.getExchangeRateAlerts());
 }
 
+/** 통화별 원화 환율 표 (1 <통화> = ? KRW). 통화가 섞인 합계를 낼 때 쓴다. */
+export function useExchangeRates() {
+  return useFetch<{ base: string; rates: Record<string, number | string>; as_of?: string | null }>(
+    () => analyticsAPI.getExchangeRates(),
+  );
+}
+
 // ── Services (카탈로그) ──
 export interface CatalogPlan {
   id: number;
