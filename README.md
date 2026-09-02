@@ -9,7 +9,8 @@
 [![Web](https://img.shields.io/badge/Web-app.mysubflow.app-4A90D9)](https://app.mysubflow.app)
 [![Landing](https://img.shields.io/badge/Landing-mysubflow.app-C4DCF2)](https://mysubflow.app)
 [![API](https://img.shields.io/badge/API-api.mysubflow.app-1A1A2E)](https://api.mysubflow.app/docs)
-![iOS](https://img.shields.io/badge/iOS-App_Store_심사중-lightgrey)
+![iOS](https://img.shields.io/badge/iOS-App_Store_심사_승인-34C759)
+![기간](https://img.shields.io/badge/개발_기간-2026.03_~_2026.09-6B7280)
 ![License](https://img.shields.io/badge/License-All_rights_reserved-red)
 
 <img src="landing/shots/web.png" alt="웹 대시보드" width="720">
@@ -418,7 +419,8 @@ APScheduler가 API 프로세스 안에서 함께 돈다 (`app/scheduler.py`, 시
 - [x] 웹앱 배포 (Cloudflare Pages)
 - [x] API 배포 (Railway) + 커스텀 도메인
 - [x] iOS 빌드 · App Store 제출
-- [ ] iOS 심사 통과 후 출시
+- [x] iOS App Store 심사 통과
+- [ ] App Store 출시 (수동 릴리스 대기)
 - [ ] Android — Play Console 등록 및 출시
 - [ ] 소셜 로그인 (Google / Kakao) — 각 개발자 앱 자격증명 발급 후
 
@@ -431,5 +433,3 @@ APScheduler가 API 프로세스 안에서 함께 돈다 (`app/scheduler.py`, 시
 [mysubflow.app](https://mysubflow.app)
 <br>
 [yge0307@gmail.com](mailto:yge0307@gmail.com) · [hyebing883@gmail.com](mailto:hyebing883@gmail.com)
-</content>
-</invoke>
