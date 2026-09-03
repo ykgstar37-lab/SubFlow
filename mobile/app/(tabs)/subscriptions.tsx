@@ -19,6 +19,7 @@ import { useSubscriptions, useAnalyticsOverview, useCategories } from '../../src
 import { useBottomSheet } from '../../src/hooks/useBottomSheet';
 import { subscriptionAPI, servicesAPI } from '../../src/services/api';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius, Shadow, TabBarSpace } from '../../src/constants/theme';
+import { formatPrice, krwHint } from '../../src/constants/currency';
 
 type FilterType = 'all' | 'active' | 'paused' | 'cancelled';
 
@@ -44,19 +45,7 @@ type Sub = {
   rateKrw?: number; // 이 통화의 현재 환율 (1 통화 = ? KRW). 원화면 없음
 };
 
-// 통화별 기호 표시 (홈 화면과 동일 규칙) — 외화 구독은 ₩가 아니라 실제 통화로 표기
-const CURRENCY_SYMBOLS: Record<string, string> = { KRW: '₩', USD: '$', EUR: '€', JPY: '¥', GBP: '£' };
-function formatPrice(amount: number, currency: string = 'KRW') {
-  const symbol = CURRENCY_SYMBOLS[currency] ?? currency + ' ';
-  if (currency === 'KRW' || currency === 'JPY') return `${symbol}${Math.round(amount).toLocaleString()}`;
-  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
-/** 외화 금액의 원화 환산 병기 문자열. 원화 구독이거나 환율이 없으면 빈 문자열. */
-function krwHint(amount: number, currency: string, rate?: number) {
-  if (currency === 'KRW' || !rate || !amount) return '';
-  return `≈ ₩${Math.round(amount * rate).toLocaleString()}`;
-}
 
 // 캘린더 헬퍼
 function getDaysInMonth(year: number, month: number) {

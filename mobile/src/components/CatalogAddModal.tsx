@@ -20,6 +20,7 @@ import type { CatalogCategory } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 import { useBottomSheet } from '../hooks/useBottomSheet';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '../constants/theme';
+import { PLAN_CURRENCIES as CURRENCIES } from '../constants/currency';
 
 type Mode = 'category' | 'service';
 
@@ -35,7 +36,6 @@ interface Props {
 // 이모지를 직접 치게 하면 대부분 비워 두고 넘어간다. 자주 쓸 만한 것만 눌러 고른다.
 const ICONS = ['🏷️', '🏋️', '🍽️', '🚗', '🏠', '🐾', '🎨', '✈️', '💊', '📦'];
 const COLORS = ['#64748B', '#2563EB', '#16A34A', '#D97706', '#DC2626', '#7C3AED'];
-const CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY'];
 const CYCLES: { value: string; ko: string; en: string }[] = [
   { value: 'monthly', ko: '월간', en: 'Monthly' },
   { value: 'yearly', ko: '연간', en: 'Yearly' },

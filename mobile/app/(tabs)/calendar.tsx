@@ -12,19 +12,13 @@ import { useTranslation } from '../../src/hooks/useTranslation';
 import { useCalendarEvents, useTimeline, useExchangeRates } from '../../src/hooks/useApi';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { Colors, Spacing, FontSize, FontWeight, Shadow, TabBarSpace } from '../../src/constants/theme';
+import { formatPrice } from '../../src/constants/currency';
 
 const DAYS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MONTHS_KO = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
-// 통화별 기호 표시 (홈 화면과 동일 규칙) — 외화 구독은 ₩가 아니라 실제 통화로 적는다
-const CURRENCY_SYMBOLS: Record<string, string> = { KRW: '₩', USD: '$', EUR: '€', JPY: '¥', GBP: '£' };
-function formatPrice(amount: number, currency: string = 'KRW') {
-  const symbol = CURRENCY_SYMBOLS[currency] ?? currency + ' ';
-  if (currency === 'KRW' || currency === 'JPY') return `${symbol}${Math.round(amount).toLocaleString()}`;
-  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 /** 캘린더 이벤트 하나의 금액과 통화. 필드 이름이 응답마다 달라 전부 받아 준다. */
 function eventAmount(ev: any) {

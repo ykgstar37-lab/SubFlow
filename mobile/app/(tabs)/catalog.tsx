@@ -35,6 +35,7 @@ import {
   Shadow,
   TabBarSpace,
 } from '../../src/constants/theme';
+import { CURRENCY_SYMBOLS, PLAN_CURRENCIES, formatMoney } from '../../src/constants/currency';
 
 interface Category {
   name: string;
@@ -90,7 +91,6 @@ interface Service {
   isCustom: boolean;
 }
 
-const CURRENCY_SYMBOL: Record<string, string> = { KRW: '₩', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
 
 /** 백엔드 서비스 응답을 화면이 쓰는 모양으로 옮긴다. */
 function toService(raw: CatalogService): Service {
@@ -155,16 +155,7 @@ function withVat(plan: Plan): number {
   return plan.currency === 'KRW' ? Math.round(raw) : Math.round(raw * 100) / 100;
 }
 
-/** 금액 하나를 통화에 맞춰 적는다. 원화는 소수점 없이, 외화는 둘째 자리까지. */
-function formatMoney(amount: number, currency: string): string {
-  const symbol = CURRENCY_SYMBOL[currency] ?? '';
-  const n = currency === 'KRW'
-    ? Math.round(amount).toLocaleString()
-    : Number(amount.toFixed(2)).toLocaleString(undefined, { maximumFractionDigits: 2 });
-  return `${symbol}${n}`;
-}
 
-const PLAN_CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY'];
 const PLAN_CYCLES: { value: string; ko: string; en: string }[] = [
   { value: 'monthly', ko: '월간', en: 'Monthly' },
   { value: 'yearly', ko: '연간', en: 'Yearly' },
@@ -206,7 +197,7 @@ function formatPriceRange(service: Service, showKrw: boolean, rates: Record<stri
   if (maxPrice === null || maxPrice === minPrice) return formatMoney(lo.amount, lo.currency);
   const hi = showKrw ? toKrw(maxPrice, currency, rates) : { amount: maxPrice, currency };
   const hiText = formatMoney(hi.amount, hi.currency);
-  const symbol = CURRENCY_SYMBOL[hi.currency] ?? '';
+  const symbol = CURRENCY_SYMBOLS[hi.currency] ?? '';
   return `${formatMoney(lo.amount, lo.currency)}~${symbol && hiText.startsWith(symbol) ? hiText.slice(symbol.length) : hiText}`;
 }
 

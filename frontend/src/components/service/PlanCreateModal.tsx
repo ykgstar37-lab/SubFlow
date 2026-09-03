@@ -6,6 +6,7 @@ import type { BillingCycle } from "../../types/subscription";
 import { tr } from "../../i18n/translations";
 import { withVat, withoutVat } from "../../utils/vat";
 import SubscriptionModal from "../subscription/SubscriptionModal";
+import { PLAN_CURRENCIES } from "../../constants/currency";
 
 interface Props {
   isOpen: boolean;
@@ -127,10 +128,9 @@ export default function PlanCreateModal({
               onChange={(e) => setCurrency(e.target.value)}
               className="glass-input mt-1 block w-full rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              <option value="KRW">KRW</option>
-              <option value="USD">USD</option>
-              <option value="EUR">EUR</option>
-              <option value="JPY">JPY</option>
+              {PLAN_CURRENCIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
             </select>
           </div>
         </div>

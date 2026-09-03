@@ -46,23 +46,7 @@ interface Subscription {
 }
 
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  KRW: '₩', USD: '$', EUR: '€', JPY: '¥', GBP: '£',
-};
 
-function formatPrice(amount: number, currency: string = 'KRW') {
-  const symbol = CURRENCY_SYMBOLS[currency] ?? currency + ' ';
-  if (currency === 'KRW' || currency === 'JPY') {
-    return `${symbol}${Math.round(amount).toLocaleString()}`;
-  }
-  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-/** 외화 금액의 원화 환산 병기 문자열. 원화 구독이거나 환율이 없으면 빈 문자열. */
-function krwHint(amount: number, currency: string, rate?: number) {
-  if (currency === 'KRW' || !rate || !amount) return '';
-  return `≈ ₩${Math.round(amount * rate).toLocaleString()}`;
-}
 
 function getDurationText(startDateStr: string) {
   const start = new Date(startDateStr);
@@ -156,6 +140,7 @@ import { useSubscriptions, useAnalyticsOverview, useExchangeRateAlerts,
   usePriceChanges, useInbox, useNews } from '../../src/hooks/useApi';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { notificationAPI } from '../../src/services/api';
+import { CURRENCY_SYMBOLS, formatPrice, krwHint } from '../../src/constants/currency';
 
 export default function HomeScreen() {
   const [activeIndex, setActiveIndex] = React.useState(0);
