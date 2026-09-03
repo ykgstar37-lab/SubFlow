@@ -166,7 +166,10 @@ export default function AnalyticsScreen() {
   const momDelta = thisMonth && lastMonth ? thisMonth.amount - lastMonth.amount : 0;
 
   const rawSavings = (savings.data as any)?.suggestions ?? [];
-  const savingsList = rawSavings.map((s: any) => ({ message: s.suggestion_text ?? s.message ?? '' }));
+  // 응답을 통째로 넘긴다. 예전에는 { message }만 남기고 버렸는데, 그 바람에
+  // subscription_id가 사라져 '요금제 바꾸러 가기'가 늘 데모 취급을 받았고
+  // 서비스명·플랜·절감액도 화면에서 통째로 빠져 있었다.
+  const savingsList = rawSavings.map((s: any) => ({ ...s, message: s.suggestion_text ?? s.message ?? '' }));
 
   const overlapsList = (overlaps.data as any)?.overlaps ?? [];
 
