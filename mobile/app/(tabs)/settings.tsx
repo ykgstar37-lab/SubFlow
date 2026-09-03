@@ -12,6 +12,7 @@ import { Card } from '../../src/components/Card';
 import { GradientButton } from '../../src/components/GradientButton';
 import { authAPI, feedbackAPI } from '../../src/services/api';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../src/store/authStore';
 import { useSettingsStore } from '../../src/store/settingsStore';
@@ -59,6 +60,23 @@ const CURRENCIES = [
 ];
 
 const DAYS_OPTIONS = [1, 2, 3, 5, 7];
+
+/**
+ * 지금 돌고 있는 JS 번들이 언제 것인지. OTA로 내보낸 수정이 이 폰까지 왔는지
+ * 확인할 방법이 화면에 없어서, 고쳤는데도 그대로라는 이야기가 반복됐다.
+ * 앱스토어에 담겨 나온 번들(embedded)이면 빈 문자열이라 버전만 보인다.
+ */
+const BUNDLE_LABEL = (() => {
+  try {
+    if (Updates.isEmbeddedLaunch || !Updates.createdAt) return '';
+    const d = new Date(Updates.createdAt);
+    const p = (n: number) => String(n).padStart(2, '0');
+    return ` · ${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  } catch {
+    return '';
+  }
+})();
+
 
 export default function SettingsScreen() {
   const { user, logout, setUser } = useAuthStore();
@@ -484,7 +502,7 @@ export default function SettingsScreen() {
             <Text style={styles.deleteText}>{t('settings.deleteAccount')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.version}>SubFlow v1.0.0</Text>
+          <Text style={styles.version}>SubFlow v1.0.0{BUNDLE_LABEL}</Text>
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>
@@ -599,6 +617,7 @@ export default function SettingsScreen() {
                 [language === 'ko' ? '보낸이' : 'From', user?.email ?? ''],
                 [language === 'ko' ? '기기' : 'Device', Platform.OS],
                 [language === 'ko' ? '앱 버전' : 'App', Constants.expoConfig?.version ?? '-'],
+                [language === 'ko' ? '번들' : 'Bundle', BUNDLE_LABEL || (language === 'ko' ? '내장' : 'embedded')],
               ].map(([label, value]) => (
                 <View key={label} style={styles.fbMetaRow}>
                   <Text style={styles.fbMetaKey}>{label}</Text>
