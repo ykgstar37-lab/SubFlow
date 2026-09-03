@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, ImageSourcePropType } from 'react-native';
 
-// ── 전체 PNG 로고 (88개) ──
+// ── 전체 PNG 로고 (카탈로그 99종 전부) ──
 const LOGOS: Record<string, ImageSourcePropType> = {
   'Netflix': require('../../assets/logos/netflix.png'),
   'YouTube Premium': require('../../assets/logos/youtube.png'),
+  'YouTube 채널 멤버십': require('../../assets/logos/youtube.png'),
   'YouTube Music': require('../../assets/logos/youtubemusic.png'),
   'Disney+': require('../../assets/logos/disneyplus.png'),
   'Wavve': require('../../assets/logos/wavve.png'),

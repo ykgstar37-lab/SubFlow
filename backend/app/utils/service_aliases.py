@@ -16,6 +16,8 @@ SERVICE_ALIASES: dict[str, list[str]] = {
     # ── Entertainment ──
     "Netflix": ["넷플릭스", "넷플"],
     "YouTube Premium": ["유튜브 프리미엄", "유튜브", "유튭", "youtube"],
+    "YouTube 채널 멤버십": ["유튜브 멤버십", "유튜브 채널 멤버십", "채널 멤버십",
+                            "유튜브", "유튭", "youtube", "membership"],
     "Disney+": ["디즈니플러스", "디즈니+", "디즈니", "disney plus"],
     "Wavve": ["웨이브"],
     "Tving": ["티빙"],
@@ -47,6 +49,9 @@ SERVICE_ALIASES: dict[str, list[str]] = {
     "Perplexity Pro": ["퍼플렉시티", "퍼플렉서티"],
     "GitLab": ["깃랩"],
     "Replit": ["리플릿"],
+    "Apple Developer Program": ["애플 개발자", "애플 디벨로퍼", "개발자 프로그램",
+                                "apple developer", "앱스토어 개발자"],
+    "Railway": ["레일웨이", "레일웨이 호스팅", "railway app"],
     # ── Cloud / Infrastructure ──
     "Vercel": ["버셀", "버설"],
     "Netlify": ["넷리파이"],
