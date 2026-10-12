@@ -38,7 +38,10 @@ export default function ServicesPage() {
   const [saving, setSaving] = useState(false);
   // 렌탈이면 기기 종류와 약정 기간(년)도 같이 받는다
   const [rentalItem, setRentalItem] = useState<RentalItem | null>(null);
-  const [contractYears, setContractYears] = useState<number | null>(null);
+  // 약정 기간(개월). 3~6년 칩 외에 39개월 같은 기간은 직접 적는다.
+  const [contractMonths, setContractMonths] = useState<number | null>(null);
+  const [contractCustom, setContractCustom] = useState(false);
+  const [contractCustomText, setContractCustomText] = useState("");
   const [rentalExtras, setRentalExtras] = useState<RentalItem[]>([]);
 
   // 카탈로그에 없는 것을 직접 넣는 두 갈래 — 분류(카테고리)와 항목(서비스)
@@ -114,7 +117,7 @@ export default function ServicesPage() {
         plan_id: subscribing.plan.id,
         start_date: startDate,
         next_billing_date: nextDate,
-        contract_end_date: contractYears ? addMonths(startDate, contractYears * 12) : null,
+        contract_end_date: contractMonths ? addMonths(startDate, contractMonths) : null,
         rental_item: rentalItem?.name ?? null,
         rental_item_icon: rentalItem?.icon ?? null,
       });
@@ -163,7 +166,9 @@ export default function ServicesPage() {
             // 시작일과 같은 날을 두면 저장하자마자 결제 임박 알림이 뜬다
             setNextDate(nextBillingDate(start, plan.billing_cycle));
             setRentalItem(null);
-            setContractYears(null);
+            setContractMonths(null);
+            setContractCustom(false);
+            setContractCustomText("");
             if (isRentalService(serviceId)) {
               subscriptionApi.getAll().then((subs) =>
                 setRentalExtras(
@@ -251,25 +256,67 @@ export default function ServicesPage() {
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-500">{tr("약정 기간")}</label>
                     <div className="flex flex-wrap gap-2">
-                      {[null, ...CONTRACT_YEARS].map((y) => (
-                        <button
-                          key={String(y)}
-                          type="button"
-                          onClick={() => setContractYears(y)}
-                          className={`rounded-full border px-3 py-1 text-sm ${
-                            contractYears === y
-                              ? "border-blue-500 bg-blue-100 font-semibold text-blue-700"
-                              : "border-slate-200 text-slate-500"
-                          }`}
-                        >
-                          {y === null ? tr("없음") : tr("{n}년", { n: y })}
-                        </button>
-                      ))}
+                      {[null, ...CONTRACT_YEARS].map((y) => {
+                        const active = !contractCustom && contractMonths === (y === null ? null : y * 12);
+                        return (
+                          <button
+                            key={String(y)}
+                            type="button"
+                            onClick={() => {
+                              setContractCustom(false);
+                              setContractMonths(y === null ? null : y * 12);
+                            }}
+                            className={`rounded-full border px-3 py-1 text-sm ${
+                              active
+                                ? "border-blue-500 bg-blue-100 font-semibold text-blue-700"
+                                : "border-slate-200 text-slate-500"
+                            }`}
+                          >
+                            {y === null ? tr("없음") : tr("{n}년", { n: y })}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setContractCustom(true);
+                          const n = parseInt(contractCustomText, 10);
+                          setContractMonths(n > 0 ? n : null);
+                        }}
+                        className={`rounded-full border px-3 py-1 text-sm ${
+                          contractCustom
+                            ? "border-blue-500 bg-blue-100 font-semibold text-blue-700"
+                            : "border-slate-200 text-slate-500"
+                        }`}
+                      >
+                        {tr("직접 입력")}
+                      </button>
                     </div>
+                    {contractCustom && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={120}
+                          value={contractCustomText}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, 3);
+                            setContractCustomText(digits);
+                            const n = parseInt(digits, 10);
+                            // 10년(120개월)을 넘는 렌탈 약정은 없다. 오타로 수백 년이 잡히지 않게 막는다.
+                            setContractMonths(n > 0 && n <= 120 ? n : null);
+                          }}
+                          autoFocus
+                          placeholder="39"
+                          className="glass-input w-24 rounded-lg px-3 py-1.5 text-center focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-slate-500">{tr("개월")}</span>
+                      </div>
+                    )}
                     <p className="mt-2 text-xs text-slate-400">
-                      {contractYears
+                      {contractMonths
                         ? tr("{date}에 약정이 끝나요. 이미 쓰던 렌탈이면 구독 시작일을 계약일로 맞춰 주세요.", {
-                            date: addMonths(startDate, contractYears * 12),
+                            date: addMonths(startDate, contractMonths),
                           })
                         : tr("약정을 넣으면 남은 기간을 보여주고 끝나기 30일 전에 알려드려요.")}
                     </p>

@@ -268,8 +268,10 @@ export default function CatalogScreen() {
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // 약정 기간(년). null이면 약정 없음.
-  const [contractYears, setContractYears] = useState<number | null>(null);
+  // 약정 기간(개월). null이면 약정 없음. 3~6년 칩 외에 39개월 같은 기간은 직접 적는다.
+  const [contractMonths, setContractMonths] = useState<number | null>(null);
+  const [contractCustom, setContractCustom] = useState(false);
+  const [contractCustomText, setContractCustomText] = useState('');
   // 렌탈 기기 종류. 같은 업체에서 정수기·비데를 함께 빌리면 이걸로 구분한다.
   const [rentalItem, setRentalItem] = useState<RentalItem | null>(null);
   // 다른 렌탈에 직접 붙였던 기기는 여기서도 다시 고를 수 있게 한다
@@ -316,7 +318,9 @@ export default function CatalogScreen() {
     setSelectedPlan(null);
     setActivePickerField(null);
     setIsSubmitting(false);
-    setContractYears(null);
+    setContractMonths(null);
+    setContractCustom(false);
+    setContractCustomText('');
     setRentalItem(null);
     resetPlanForm();
     // 기본 시작일: 오늘
@@ -484,7 +488,7 @@ export default function CatalogScreen() {
         status: 'active',
         auto_renew: true,
         is_recurring: true,
-        contract_end_date: contractYears && startDate ? addMonths(startDate, contractYears * 12) : null,
+        contract_end_date: contractMonths && startDate ? addMonths(startDate, contractMonths) : null,
         rental_item: rentalItem?.name ?? null,
         rental_item_icon: rentalItem?.icon ?? null,
       });
@@ -1111,23 +1115,58 @@ export default function CatalogScreen() {
                       {language === 'ko' ? '약정 기간' : 'Contract'}
                     </Text>
                     <View style={styles.modalPlanChipRow}>
-                      {[null, ...CONTRACT_YEARS].map((y) => (
-                        <TouchableOpacity
-                          key={String(y)}
-                          style={[styles.modalPlanChip, contractYears === y && styles.modalPlanChipActive]}
-                          onPress={() => setContractYears(y)}
-                        >
-                          <Text style={[styles.modalPlanChipText, contractYears === y && styles.modalPlanChipTextActive]}>
-                            {y === null ? (language === 'ko' ? '없음' : 'None') : (language === 'ko' ? `${y}년` : `${y} yr`)}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                      {[null, ...CONTRACT_YEARS].map((y) => {
+                        const active = !contractCustom && contractMonths === (y === null ? null : y * 12);
+                        return (
+                          <TouchableOpacity
+                            key={String(y)}
+                            style={[styles.modalPlanChip, active && styles.modalPlanChipActive]}
+                            onPress={() => { setContractCustom(false); setContractMonths(y === null ? null : y * 12); }}
+                          >
+                            <Text style={[styles.modalPlanChipText, active && styles.modalPlanChipTextActive]}>
+                              {y === null ? (language === 'ko' ? '없음' : 'None') : (language === 'ko' ? `${y}년` : `${y} yr`)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      <TouchableOpacity
+                        style={[styles.modalPlanChip, contractCustom && styles.modalPlanChipActive]}
+                        onPress={() => {
+                          setContractCustom(true);
+                          const n = parseInt(contractCustomText, 10);
+                          setContractMonths(n > 0 ? n : null);
+                        }}
+                      >
+                        <Text style={[styles.modalPlanChipText, contractCustom && styles.modalPlanChipTextActive]}>
+                          {language === 'ko' ? '직접 입력' : 'Custom'}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
+                    {contractCustom && (
+                      <View style={styles.contractCustomRow}>
+                        <TextInput
+                          style={[styles.modalPlanInput, styles.contractCustomInput]}
+                          value={contractCustomText}
+                          onChangeText={(v) => {
+                            const digits = v.replace(/[^0-9]/g, '').slice(0, 3);
+                            setContractCustomText(digits);
+                            const n = parseInt(digits, 10);
+                            // 10년(120개월)을 넘는 렌탈 약정은 없다. 오타로 수백 년이 잡히지 않게 막는다.
+                            setContractMonths(n > 0 && n <= 120 ? n : null);
+                          }}
+                          keyboardType="number-pad"
+                          placeholder="39"
+                          placeholderTextColor={Colors.textTertiary}
+                          autoFocus
+                        />
+                        <Text style={styles.contractCustomUnit}>{language === 'ko' ? '개월' : 'months'}</Text>
+                      </View>
+                    )}
                     <Text style={styles.contractHint}>
-                      {contractYears && startDate
+                      {contractMonths && startDate
                         ? (language === 'ko'
-                          ? `${addMonths(startDate, contractYears * 12)}에 약정이 끝나요. 이미 쓰던 렌탈이면 결제 시작일을 계약일로 맞춰 주세요.`
-                          : `Ends ${addMonths(startDate, contractYears * 12)}. For an existing rental, set the start date to your contract date.`)
+                          ? `${addMonths(startDate, contractMonths)}에 약정이 끝나요. 이미 쓰던 렌탈이면 결제 시작일을 계약일로 맞춰 주세요.`
+                          : `Ends ${addMonths(startDate, contractMonths)}. For an existing rental, set the start date to your contract date.`)
                         : (language === 'ko'
                           ? '약정을 넣으면 남은 기간을 보여주고 끝나기 30일 전에 알려드려요.'
                           : 'We show what is left and remind you 30 days before it ends.')}
@@ -1156,10 +1195,10 @@ export default function CatalogScreen() {
                       <Text style={styles.modalSummaryLabel}>{language === 'ko' ? '다음 결제일' : 'Next Billing'}</Text>
                       <Text style={styles.modalSummaryValue}>{billingDate}</Text>
                     </View>
-                    {contractYears && startDate ? (
+                    {contractMonths && startDate ? (
                       <View style={styles.modalSummaryRow}>
                         <Text style={styles.modalSummaryLabel}>{language === 'ko' ? '약정 종료일' : 'Contract Ends'}</Text>
-                        <Text style={styles.modalSummaryValue}>{addMonths(startDate, contractYears * 12)}</Text>
+                        <Text style={styles.modalSummaryValue}>{addMonths(startDate, contractMonths)}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -1357,6 +1396,9 @@ const styles = StyleSheet.create({
   modalPriceLabel: { fontSize: FontSize.sm, color: Colors.textSecondary, flex: 1 },
   modalPriceValue: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.success },
   modalPlansSection: { marginBottom: Spacing.lg },
+  contractCustomRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  contractCustomInput: { width: 80, textAlign: 'center' },
+  contractCustomUnit: { fontSize: FontSize.sm, color: Colors.textSecondary },
   contractHint: {
     fontSize: 12,
     color: Colors.textTertiary,
