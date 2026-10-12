@@ -853,6 +853,10 @@ export default function CatalogScreen() {
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 bounces={false}
+                // 시트 안에 입력칸(약정 개월·기기 이름·요금제)이 있다. 키보드가 올라오면
+                // 그만큼 스크롤 영역을 줄이고 입력 중인 칸을 위로 올려야 치는 게 보인다.
+                automaticallyAdjustKeyboardInsets
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: TabBarSpace }}
                 onScroll={(e) => { sheetScrollY.current = e.nativeEvent.contentOffset.y; }}
                 scrollEventThrottle={16}

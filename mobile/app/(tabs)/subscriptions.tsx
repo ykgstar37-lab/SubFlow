@@ -665,6 +665,9 @@ export default function SubscriptionsScreen() {
             <ScrollView
               showsVerticalScrollIndicator={false}
               bounces={false}
+              // 기기 직접 추가 칸이 있다. 키보드가 올라오면 입력 중인 칸이 보이게 올린다.
+              automaticallyAdjustKeyboardInsets
+              keyboardShouldPersistTaps="handled"
               style={{ maxHeight: Dimensions.get('window').height * 0.7 }}
               contentContainerStyle={{ paddingBottom: TabBarSpace }}
               onScroll={(e) => { sheetScrollY.current = e.nativeEvent.contentOffset.y; }}
