@@ -179,6 +179,7 @@ const translations = {
   'category.Storage': { en: 'Storage', ko: '저장소' },
   'category.Security & VPN': { en: 'Security & VPN', ko: '보안/VPN' },
   'category.Lifestyle': { en: 'Lifestyle', ko: '라이프스타일' },
+  'category.Rental': { en: 'Rental', ko: '렌탈' },
 } as const;
 
 export type TranslationKey = keyof typeof translations;

@@ -28,6 +28,9 @@ DEFAULT_CATEGORIES = [
     {"name": "Storage", "icon": "💾", "color": "#0078D4", "is_default": True},
     {"name": "Security & VPN", "icon": "🔒", "color": "#4A90D9", "is_default": True},
     {"name": "Lifestyle", "icon": "🛍️", "color": "#FF6F61", "is_default": True},
+    # 정수기·공기청정기·비데 같은 가전 렌탈. 의무사용기간(약정)이 있어
+    # 구독에 약정 종료일을 함께 넣어 쓰는 칸이다.
+    {"name": "Rental", "icon": "🏠", "color": "#0EA5E9", "is_default": True},
 ]
 
 # category_name -> list of services
@@ -1149,6 +1152,49 @@ DEFAULT_SERVICES = {
                 {"name": "Premium", "price": 1.65, "currency": "USD", "billing_cycle": "MONTHLY"},
                 {"name": "Families", "price": 3.33, "currency": "USD", "billing_cycle": "MONTHLY"},
             ],
+        },
+    ],
+    # 요금제는 넣지 않는다 — 렌탈료는 제품·약정 기간·카드 할인마다 달라
+    # 카탈로그가 대표값을 정할 수 없다. 계약서의 월 렌탈료를 '요금제 직접 입력'으로
+    # 넣고, 약정 종료일을 함께 적어 쓰는 항목들이다.
+    "Rental": [
+        {
+            "name": "코웨이",
+            "description": "정수기·공기청정기·비데·매트리스 렌탈. 금액과 약정 종료일을 직접 넣어 쓰세요",
+            "website_url": "https://www.coway.com",
+            "logo_url": "/logos/coway.png",
+            "is_popular": True,
+            "plans": [],
+        },
+        {
+            "name": "SK인텔릭스",
+            "description": "옛 SK매직. 정수기·공기청정기·식기세척기 렌탈",
+            "website_url": "https://www.skintellix.com",
+            "logo_url": "/logos/skintellix.png",
+            "is_popular": False,
+            "plans": [],
+        },
+        {
+            "name": "청호나이스",
+            "description": "정수기·얼음정수기·비데 렌탈",
+            "website_url": "https://www.chungho.co.kr",
+            "is_popular": False,
+            "plans": [],
+        },
+        {
+            "name": "LG전자 구독",
+            "description": "LG 가전 구독(옛 케어솔루션). 정수기·공기청정기·세탁기 등",
+            "website_url": "https://www.lge.co.kr/care-solutions",
+            "logo_url": "/logos/lgcaresolution.png",
+            "is_popular": False,
+            "plans": [],
+        },
+        {
+            "name": "쿠쿠 렌탈",
+            "description": "정수기·공기청정기·비데 렌탈",
+            "website_url": "https://www.cuckoo.co.kr",
+            "is_popular": False,
+            "plans": [],
         },
     ],
     "Lifestyle": [

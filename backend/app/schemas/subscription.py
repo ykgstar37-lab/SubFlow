@@ -38,6 +38,7 @@ class SubscriptionFromCatalogRequest(BaseModel):
     is_recurring: bool = True
     cancel_reminder: bool = False
     member_count: int = Field(default=1, ge=1, le=50)
+    contract_end_date: date | None = None
 
 
 class SubscriptionCreateRequest(BaseModel):
@@ -58,6 +59,7 @@ class SubscriptionCreateRequest(BaseModel):
     is_recurring: bool = True
     cancel_reminder: bool = False
     member_count: int = Field(default=1, ge=1, le=50)
+    contract_end_date: date | None = None
 
 
 class SubscriptionUpdateRequest(BaseModel):
@@ -78,6 +80,8 @@ class SubscriptionUpdateRequest(BaseModel):
     is_recurring: bool | None = None
     cancel_reminder: bool | None = None
     member_count: int | None = Field(default=None, ge=1, le=50)
+    # null을 보내면 약정을 지운다(exclude_unset이라 안 보내면 그대로).
+    contract_end_date: date | None = None
 
 
 class SubscriptionResponse(BaseModel):
@@ -96,6 +100,7 @@ class SubscriptionResponse(BaseModel):
     is_recurring: bool
     cancel_reminder: bool
     member_count: int
+    contract_end_date: date | None = None
     category_id: int | None
     category: CategoryResponse | None = None
     service_id: int | None = None

@@ -56,6 +56,9 @@ class Subscription(Base):
     cancel_reminder: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # 공유/가족 구독: 비용을 나눠 내는 인원 수 (1 = 단독). 내 몫 = cost / member_count
+    # 렌탈처럼 의무사용기간이 있는 구독의 약정 종료일. 없으면 약정 없음.
+    # 끝나면 소유권이 넘어오거나 렌탈료가 내려가므로 종료 전에 알려 준다.
+    contract_end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     member_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False, server_default="1")
 
     initial_exchange_rate: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)

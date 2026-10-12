@@ -221,6 +221,7 @@ class NotificationService:
         await self.sync_renewal_notifications(user_id)
         await self.sync_budget_notifications(user_id)
         await self.sync_exchange_rate_notifications(user_id)
+        await self.sync_contract_end_notifications(user_id)
 
     async def _cancel_urls(self, user_id: UUID) -> dict[str, str]:
         """구독ID → 서비스 해지 URL (cancel_url 있는 것만)."""
@@ -342,6 +343,48 @@ class NotificationService:
                     link="/subscriptions",
                     action_url=cancel_urls.get(str(sub.id)),
                     action_label=messages.ACTION_CANCEL_GUIDE if cancel_urls.get(str(sub.id)) else None,
+                    dedup_key=key,
+                )
+            )
+        await self.db.commit()
+
+    async def sync_contract_end_notifications(self, user_id: UUID) -> None:
+        """약정(렌탈 의무사용기간) 종료 30일 전부터 한 번 알린다.
+
+        끝나는 날을 놓치면 소유권 이전·렌탈료 인하를 모른 채 같은 돈을 내거나,
+        업체 재약정 권유에 그대로 넘어가기 쉽다. dedup_key에 종료일을 넣어
+        약정을 새로 잡으면(종료일이 바뀌면) 다시 알린다.
+        """
+        today = date.today()
+        subs = (
+            await self.db.execute(
+                select(Subscription).where(
+                    Subscription.user_id == user_id,
+                    Subscription.status == SubscriptionStatus.ACTIVE,
+                    Subscription.contract_end_date.isnot(None),
+                    Subscription.contract_end_date >= today,
+                    Subscription.contract_end_date <= today + timedelta(days=30),
+                )
+            )
+        ).scalars().all()
+        if not subs:
+            return
+
+        existing = await self._existing_keys(user_id, NotificationType.CONTRACT_END)
+        for sub in subs:
+            key = f"contract:{sub.id}:{sub.contract_end_date}"
+            if key in existing:
+                continue
+            days = (sub.contract_end_date - today).days
+            dday = "오늘" if days == 0 else f"D-{days}"
+            self.db.add(
+                Notification(
+                    user_id=user_id,
+                    type=NotificationType.CONTRACT_END.value,
+                    title=messages.contract_end_title(sub.service_name, dday),
+                    body=messages.contract_end_body(sub.contract_end_date),
+                    category=messages.NOTIFICATION_CATEGORY,
+                    link="/subscriptions",
                     dedup_key=key,
                 )
             )

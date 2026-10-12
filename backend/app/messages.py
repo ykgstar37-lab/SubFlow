@@ -58,6 +58,15 @@ def renewal_share(personal_amount: str) -> str:
     return f" (내 몫 {personal_amount})"
 
 
+def contract_end_title(service_name: str, dday: str) -> str:
+    return f"{service_name} 약정이 곧 끝나요 ({dday})"
+
+
+def contract_end_body(end_date) -> str:
+    return (f"{end_date}에 의무사용기간이 끝나요. 소유권 이전·렌탈료 인하 여부를 "
+            "확인하고, 재약정 권유는 조건을 비교해 보고 정하세요.")
+
+
 def trial_title(service_name: str, dday: str) -> str:
     return f"{service_name} 무료체험이 곧 끝나요 ({dday})"
 

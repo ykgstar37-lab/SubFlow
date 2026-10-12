@@ -19,6 +19,7 @@ class NotificationType(str, enum.Enum):
     BUDGET = "budget"              # 예산 초과
     RENEWAL = "renewal"            # 결제 임박
     EXCHANGE_RATE = "exchange_rate"  # 환율 변동
+    CONTRACT_END = "contract_end"  # 렌탈 등 약정 종료 임박
 
 
 class Notification(Base):

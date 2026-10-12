@@ -28,6 +28,7 @@ const TYPE_STYLE: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: 
   budget: { icon: 'wallet-outline', color: Colors.warning },
   renewal: { icon: 'calendar-outline', color: Colors.primary },
   exchange_rate: { icon: 'swap-horizontal-outline', color: Colors.info },
+  contract_end: { icon: 'document-text-outline', color: Colors.warning },
 };
 
 // 딥링크 → 탭 라우트 매핑

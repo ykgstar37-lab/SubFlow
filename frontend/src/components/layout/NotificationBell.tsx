@@ -11,6 +11,7 @@ import {
   Wallet,
   Calendar,
   ArrowLeftRight,
+  FileText,
   X,
   ExternalLink,
   type LucideIcon,
@@ -28,6 +29,7 @@ const TYPE_STYLE: Record<string, { icon: LucideIcon; color: string; bg: string }
   budget: { icon: Wallet, color: "text-amber-600", bg: "bg-amber-50" },
   renewal: { icon: Calendar, color: "text-indigo-600", bg: "bg-indigo-50" },
   exchange_rate: { icon: ArrowLeftRight, color: "text-sky-600", bg: "bg-sky-50" },
+  contract_end: { icon: FileText, color: "text-amber-600", bg: "bg-amber-50" },
 };
 
 const LINK_MAP: Record<string, string> = {

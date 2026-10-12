@@ -43,7 +43,36 @@ type Sub = {
   cancelUrl?: string;
   memberCount: number;
   rateKrw?: number; // 이 통화의 현재 환율 (1 통화 = ? KRW). 원화면 없음
+  startDate: string;
+  contractEnd: string | null; // 렌탈 등 약정 종료일. 없으면 약정 없음
 };
+
+/** 날짜에 개월 수를 더한다. 말일은 그 달 길이에 맞춰 당긴다(catalog.tsx와 같은 규칙). */
+function addMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const total = m - 1 + months;
+  const year = y + Math.floor(total / 12);
+  const month = ((total % 12) + 12) % 12;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return [year, String(month + 1).padStart(2, '0'), String(Math.min(d, lastDay)).padStart(2, '0')].join('-');
+}
+
+const CYCLE_MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, yearly: 12 };
+
+/** 약정이 끝날 때까지 남은 결제 횟수·금액·일수. 다음 결제일부터 주기만큼
+ *  밀어 가며 종료일 전까지 센다 — '남은 개월 × 요금'은 결제일이 종료일과
+ *  어긋날 때 한 번씩 틀린다. 주간 결제는 렌탈에 없어 세지 않는다. */
+function contractRemaining(sub: Sub): { days: number; payments: number; total: number } | null {
+  if (!sub.contractEnd) return null;
+  const today = new Date().toISOString().split('T')[0];
+  const days = Math.round((new Date(sub.contractEnd).getTime() - new Date(today).getTime()) / 86400000);
+  const step = CYCLE_MONTHS[sub.cycle.toLowerCase()];
+  let payments = 0;
+  if (step && sub.nextDate !== '—') {
+    for (let d = sub.nextDate; d < sub.contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
+  }
+  return { days, payments, total: payments * sub.amount };
+}
 
 
 
@@ -93,6 +122,7 @@ export default function SubscriptionsScreen() {
   const [editMembers, setEditMembers] = useState(1);
   const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
   const [editStatus, setEditStatus] = useState<Sub['status']>('active');
+  const [editContractEnd, setEditContractEnd] = useState<string | null>(null);
   const slideAnim = useRef(new Animated.Value(600)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -121,6 +151,8 @@ export default function SubscriptionsScreen() {
     currency: s.currency ?? 'KRW',
     rateKrw: s.exchange_rate_krw != null ? Number(s.exchange_rate_krw) : undefined,
     memberCount: Math.max(1, Number(s.member_count ?? 1)),
+    startDate: s.start_date ?? '',
+    contractEnd: s.contract_end_date ?? null,
   }));
 
   const byStatus = filter === 'all' ? allSubs : allSubs.filter(s => s.status === filter);
@@ -220,6 +252,7 @@ export default function SubscriptionsScreen() {
     setSelectedSub(sub);
     setEditDate(sub.nextDate);
     setEditMembers(sub.memberCount);
+    setEditContractEnd(sub.contractEnd);
     setEditCategoryId(sub.categoryId);
     setEditStatus(sub.status);
     // 탭은 한 번 뜨면 계속 살아 있다. 서비스 탐색에서 방금 만든 분류가
@@ -402,6 +435,23 @@ export default function SubscriptionsScreen() {
             </Text>
           </View>
         )}
+        {(() => {
+          const c = contractRemaining(sub);
+          if (!c) return null;
+          const ended = c.days < 0;
+          const soon = !ended && c.days <= 30;
+          const label = ended
+            ? (language === 'ko' ? '약정 끝남' : 'Contract ended')
+            : soon
+              ? (language === 'ko' ? `약정 D-${c.days}` : `Contract D-${c.days}`)
+              : (language === 'ko' ? `약정 ${c.payments}회 남음` : `${c.payments} payments left`);
+          return (
+            <View style={[styles.splitBadge, soon && styles.contractBadgeSoon]}>
+              <Ionicons name="document-text-outline" size={11} color={soon ? Colors.warningText : Colors.primary} />
+              <Text style={[styles.splitBadgeText, soon && { color: Colors.warningText }]}>{label}</Text>
+            </View>
+          );
+        })()}
       </View>
       <View style={styles.subRight}>
         <Text style={styles.subAmount}>{formatPrice(sub.amount, sub.currency)}</Text>
@@ -788,6 +838,53 @@ export default function SubscriptionsScreen() {
               )}
             </View>
 
+            {/* 약정 종료일 — 렌탈 의무사용기간. 몇 년 뒤 날짜라 달력 대신 개월·년 단위로 민다 */}
+            <View style={styles.modalEditRow}>
+              <Text style={styles.modalEditLabel}>{language === 'ko' ? '약정 종료일 (렌탈 등)' : 'Contract ends (rentals)'}</Text>
+              {editContractEnd ? (
+                <>
+                  <View style={styles.memberStepper}>
+                    <TouchableOpacity style={styles.stepperBtn} onPress={() => setEditContractEnd((d) => d && addMonths(d, -12))}>
+                      <Text style={styles.contractStepText}>{language === 'ko' ? '-1년' : '-1y'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.stepperBtn} onPress={() => setEditContractEnd((d) => d && addMonths(d, -1))}>
+                      <Text style={styles.contractStepText}>{language === 'ko' ? '-1달' : '-1m'}</Text>
+                    </TouchableOpacity>
+                    <View style={styles.stepperValueWrap}>
+                      <Text style={styles.contractDate}>{editContractEnd}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.stepperBtn} onPress={() => setEditContractEnd((d) => d && addMonths(d, 1))}>
+                      <Text style={styles.contractStepText}>{language === 'ko' ? '+1달' : '+1m'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.stepperBtn} onPress={() => setEditContractEnd((d) => d && addMonths(d, 12))}>
+                      <Text style={styles.contractStepText}>{language === 'ko' ? '+1년' : '+1y'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {(() => {
+                    const c = contractRemaining({ ...selectedSub, contractEnd: editContractEnd });
+                    return c && c.days >= 0 ? (
+                      <Text style={styles.memberSplitHint}>
+                        {language === 'ko'
+                          ? `남은 결제 ${c.payments}회 · 약 ${formatPrice(c.total, selectedSub.currency)} · 끝나면 소유권 이전·렌탈료 인하를 확인하세요`
+                          : `${c.payments} payments left · about ${formatPrice(c.total, selectedSub.currency)}`}
+                      </Text>
+                    ) : null;
+                  })()}
+                  <TouchableOpacity onPress={() => setEditContractEnd(null)}>
+                    <Text style={styles.contractClear}>{language === 'ko' ? '약정 없음으로 바꾸기' : 'Remove contract'}</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.editPill, { alignSelf: 'flex-start' }]}
+                  // 렌탈 약정은 3년이 가장 흔하다. 계약일(=결제 시작일)에서 센다.
+                  onPress={() => setEditContractEnd(addMonths(selectedSub.startDate || new Date().toISOString().split('T')[0], 36))}
+                >
+                  <Text style={styles.editPillText}>{language === 'ko' ? '+ 약정 추가' : '+ Add contract'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
             {/* 분류 — 안 고르면 서비스 탐색의 카테고리를 그대로 따른다 */}
             <View style={styles.modalEditRow}>
               <Text style={styles.modalEditLabel}>
@@ -910,6 +1007,9 @@ export default function SubscriptionsScreen() {
                   if (editStatus !== selectedSub.status) {
                     updateData.status = editStatus;
                   }
+                  if (editContractEnd !== selectedSub.contractEnd) {
+                    updateData.contract_end_date = editContractEnd;
+                  }
                   if (Object.keys(updateData).length > 0) {
                     await subscriptionAPI.update(selectedSub.id, updateData);
                   }
@@ -974,6 +1074,10 @@ const styles = StyleSheet.create({
   },
   stepperValueWrap: { flexDirection: 'row', alignItems: 'baseline', gap: 4, minWidth: 56, justifyContent: 'center' },
   stepperValue: { fontSize: FontSize.xl, fontWeight: FontWeight.heavy, color: Colors.textPrimary },
+  contractStepText: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: Colors.primary },
+  contractDate: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.textPrimary },
+  contractClear: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 8, textDecorationLine: 'underline' },
+  contractBadgeSoon: { backgroundColor: Colors.warningSoft },
   stepperUnit: { fontSize: FontSize.sm, color: Colors.textTertiary },
   memberSplitHint: { fontSize: FontSize.xs, color: Colors.primary, marginTop: 8 },
   // ── 분류 고르기 (카드 헤더 버튼 + 시트) ──
