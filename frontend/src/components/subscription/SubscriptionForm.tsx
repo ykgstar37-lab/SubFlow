@@ -9,6 +9,9 @@ import type {
 } from "../../types/subscription";
 import { serviceApi } from "../../api/services";
 import { tr, fmtMoney } from "../../i18n/translations";
+import RentalItemPicker, { type RentalItem } from "./RentalItemPicker";
+import { addMonths } from "../../utils/billingDate";
+import { contractRemaining } from "../../utils/contract";
 
 interface Props {
   categories: Category[];
@@ -16,6 +19,8 @@ interface Props {
   onSubmit: (data: SubscriptionCreateRequest) => void;
   onCancel: () => void;
   loading?: boolean;
+  /** 내가 다른 렌탈에 직접 붙였던 기기들 — 다시 고를 수 있게 함께 보여준다 */
+  rentalExtras?: RentalItem[];
 }
 
 const cycleMap: Record<string, BillingCycle> = {
@@ -31,6 +36,7 @@ export default function SubscriptionForm({
   onSubmit,
   onCancel,
   loading,
+  rentalExtras = [],
 }: Props) {
   const isEditing = !!initial;
 
@@ -73,7 +79,14 @@ export default function SubscriptionForm({
     cancel_reminder: initial?.cancel_reminder ?? false,
     member_count: initial?.member_count ?? 1,
     notes: initial?.notes ?? "",
+    contract_end_date: initial?.contract_end_date ?? null,
   });
+  const [rentalItem, setRentalItem] = useState<RentalItem | null>(
+    initial?.rental_item ? { name: initial.rental_item, icon: initial.rental_item_icon ?? "📦" } : null
+  );
+  // 렌탈 분류이거나 이미 기기가 붙어 있을 때만 기기·약정 칸을 펼친다
+  const isRental =
+    categories.find((c) => c.id === form.category_id)?.name === "Rental" || !!rentalItem;
 
   // Load all services grouped by category
   useEffect(() => {
@@ -153,6 +166,9 @@ export default function SubscriptionForm({
       cancel_reminder: form.cancel_reminder,
       member_count: form.member_count,
       notes: form.notes || undefined,
+      contract_end_date: form.contract_end_date || null,
+      rental_item: rentalItem?.name ?? null,
+      rental_item_icon: rentalItem?.icon ?? null,
     });
   };
 
@@ -391,6 +407,57 @@ export default function SubscriptionForm({
             className="glass-input mt-1 block w-full rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
+      </div>
+
+      {isRental && (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-slate-500">{tr("어떤 기기인가요?")}</label>
+          <RentalItemPicker value={rentalItem} onChange={setRentalItem} extras={rentalExtras} />
+        </div>
+      )}
+
+      {/* 약정 종료일 — 렌탈 의무사용기간. 렌탈이 아니어도 약정 있는 구독에 쓸 수 있다 */}
+      <div>
+        <label className="block text-sm font-medium text-slate-500">{tr("약정 종료일 (렌탈 등)")}</label>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={form.contract_end_date ?? ""}
+            onChange={(e) => setForm({ ...form, contract_end_date: e.target.value || null })}
+            className="glass-input block rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          {/* 몇 년 뒤 날짜를 달력으로 고르기 번거로워 시작일 기준 빠른 선택을 둔다 */}
+          {[3, 4, 5, 6].map((y) => (
+            <button
+              key={y}
+              type="button"
+              onClick={() => setForm({ ...form, contract_end_date: addMonths(form.start_date, y * 12) })}
+              className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-500 hover:border-blue-300"
+            >
+              {tr("{n}년", { n: y })}
+            </button>
+          ))}
+          {form.contract_end_date && (
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, contract_end_date: null })}
+              className="text-xs text-slate-400 underline"
+            >
+              {tr("약정 없음")}
+            </button>
+          )}
+        </div>
+        {(() => {
+          const c = contractRemaining(form.contract_end_date, form.next_billing_date, form.billing_cycle, Number(form.cost) || 0);
+          return c && c.days >= 0 ? (
+            <p className="mt-2 rounded-lg bg-amber-50/60 px-3 py-2 text-xs text-amber-700">
+              {tr("남은 결제 {n}회 · 약 {total} · 끝나면 소유권 이전·렌탈료 인하를 확인하세요", {
+                n: c.payments,
+                total: form.currency === "KRW" ? fmtMoney(Math.round(c.total)) : `${c.total.toFixed(2)} ${form.currency}`,
+              })}
+            </p>
+          ) : null;
+        })()}
       </div>
 
       {/* 공유/가족 분담 */}

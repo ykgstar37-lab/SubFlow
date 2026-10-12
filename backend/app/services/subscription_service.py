@@ -164,6 +164,8 @@ class SubscriptionService:
             cancel_reminder=data.cancel_reminder,
             member_count=data.member_count,
             contract_end_date=data.contract_end_date,
+            rental_item=data.rental_item,
+            rental_item_icon=data.rental_item_icon,
         )
         if subscription.currency != "KRW":
             rates = await get_exchange_rates()

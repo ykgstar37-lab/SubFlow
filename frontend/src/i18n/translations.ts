@@ -6,6 +6,33 @@ export type Language = "en" | "ko";
  * `{name}` 형태의 자리표시자는 t()의 params로 치환한다.
  */
 const EN: Record<string, string> = {
+  // ── 렌탈 ──
+  "기타 통화": "Other currencies",
+  "어떤 기기인가요?": "Which device?",
+  "약정 종료일 (렌탈 등)": "Contract ends (rentals)",
+  "약정 없음": "No contract",
+  "남은 결제 {n}회 · 약 {total} · 끝나면 소유권 이전·렌탈료 인하를 확인하세요": "{n} payments left · about {total} · check ownership transfer or a lower fee when it ends",
+  "약정 끝남": "Contract ended",
+  "약정 D-{n}": "Contract D-{n}",
+  "약정 {n}회 남음": "{n} payments left",
+  "약정 기간": "Contract",
+  "{date}에 약정이 끝나요. 이미 쓰던 렌탈이면 구독 시작일을 계약일로 맞춰 주세요.": "Ends {date}. For an existing rental, set the start date to your contract date.",
+  "약정을 넣으면 남은 기간을 보여주고 끝나기 30일 전에 알려드려요.": "We show what is left and remind you 30 days before it ends.",
+  "직접 추가": "Custom",
+  "기기 이름 (예: 커피머신)": "Device name (e.g. coffee machine)",
+  "정수기": "Water purifier",
+  "공기청정기": "Air purifier",
+  "가습기": "Humidifier",
+  "제습기": "Dehumidifier",
+  "에어컨": "Air conditioner",
+  "비데": "Bidet",
+  "안마의자": "Massage chair",
+  "매트리스": "Mattress",
+  "세탁기": "Washer",
+  "건조기": "Dryer",
+  "식기세척기": "Dishwasher",
+  "냉장고": "Fridge",
+
   // ── 공통 ──
   "저장": "Save",
   "저장 중...": "Saving...",

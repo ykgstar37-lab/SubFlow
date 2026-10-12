@@ -1,8 +1,9 @@
 import { format } from "date-fns";
-import { CreditCard, ExternalLink, Pencil, Trash2, Users } from "lucide-react";
+import { CreditCard, ExternalLink, FileText, Pencil, Trash2, Users } from "lucide-react";
 import type { Subscription } from "../../types/subscription";
 import { tr } from "../../i18n/translations";
 import { krwHint } from "../../utils/currency";
+import { contractRemaining } from "../../utils/contract";
 
 interface Props {
   subscription: Subscription;
@@ -70,7 +71,13 @@ export default function SubscriptionCard({ subscription, onEdit, onDelete }: Pro
             {/* 서비스 하나에 요금제가 여럿이면(예: 채널마다 다른 유튜브 멤버십)
                 이름만으로는 구분이 안 된다. 요금제가 있으면 앞에 세운다. */}
             <p className="truncate text-xs text-slate-400">
-              {[subscription.plan?.name, subscription.category?.name]
+              {[
+                subscription.rental_item
+                  ? `${subscription.rental_item_icon ?? "📦"} ${tr(subscription.rental_item)}`
+                  : null,
+                subscription.plan?.name,
+                subscription.category?.name,
+              ]
                 .filter(Boolean)
                 .join(" · ") || tr("미분류")}
             </p>
@@ -104,6 +111,32 @@ export default function SubscriptionCard({ subscription, onEdit, onDelete }: Pro
           </p>
         )}
       </div>
+
+      {(() => {
+        const c = contractRemaining(
+          subscription.contract_end_date,
+          subscription.next_billing_date,
+          subscription.billing_cycle,
+          subscription.cost
+        );
+        if (!c) return null;
+        const ended = c.days < 0;
+        const soon = !ended && c.days <= 30;
+        return (
+          <p
+            className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+              soon ? "bg-amber-100 text-amber-800" : "bg-blue-500/10 text-blue-700"
+            }`}
+          >
+            <FileText className="h-3 w-3" />
+            {ended
+              ? tr("약정 끝남")
+              : soon
+                ? tr("약정 D-{n}", { n: c.days })
+                : tr("약정 {n}회 남음", { n: c.payments })}
+          </p>
+        );
+      })()}
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
         <button

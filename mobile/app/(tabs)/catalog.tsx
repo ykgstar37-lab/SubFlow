@@ -20,7 +20,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect} from 'expo-router';
 import { useTranslation } from '../../src/hooks/useTranslation';
 import { subscriptionAPI, analyticsAPI, servicesAPI } from '../../src/services/api';
-import { useServices, useCategories, type CatalogService } from '../../src/hooks/useApi';
+import { useServices, useCategories, useSubscriptions, type CatalogService } from '../../src/hooks/useApi';
+import { RentalItemPicker, type RentalItem } from '../../src/components/RentalItemPicker';
 import { SERVICE_TAGLINES } from '../../src/constants/serviceTaglines';
 import { ServiceLogo } from '../../src/components/ServiceLogo';
 import { AppLogoMark } from '../../src/components/AppLogoMark';
@@ -35,7 +36,7 @@ import {
   Shadow,
   TabBarSpace,
 } from '../../src/constants/theme';
-import { CURRENCY_SYMBOLS, PLAN_CURRENCIES, formatMoney } from '../../src/constants/currency';
+import { CURRENCY_SYMBOLS, formatMoney, visibleCurrencies } from '../../src/constants/currency';
 
 interface Category {
   name: string;
@@ -269,12 +270,23 @@ export default function CatalogScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // 약정 기간(년). null이면 약정 없음.
   const [contractYears, setContractYears] = useState<number | null>(null);
+  // 렌탈 기기 종류. 같은 업체에서 정수기·비데를 함께 빌리면 이걸로 구분한다.
+  const [rentalItem, setRentalItem] = useState<RentalItem | null>(null);
+  // 다른 렌탈에 직접 붙였던 기기는 여기서도 다시 고를 수 있게 한다
+  const subsForItems = useSubscriptions();
+  const customRentalItems = useMemo<RentalItem[]>(
+    () => ((subsForItems.data as any[]) ?? [])
+      .filter((s) => s.rental_item && s.rental_item_icon)
+      .map((s) => ({ name: s.rental_item, icon: s.rental_item_icon })),
+    [subsForItems.data],
+  );
 
   // 요금제 직접 입력 — 카탈로그가 실제 요금제를 다 담지 못해서 둔 칸
   const [planFormOpen, setPlanFormOpen] = useState(false);
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanPrice, setNewPlanPrice] = useState('');
   const [newPlanCurrency, setNewPlanCurrency] = useState('KRW');
+  const [showAllCurrencies, setShowAllCurrencies] = useState(false);
   const [newPlanCycle, setNewPlanCycle] = useState('monthly');
   // 대개는 청구서에 찍힌 실결제액을 그대로 적으므로 꺼진 게 기본이다.
   // 공식 가격표(부가세 별도)를 보고 적을 때만 켠다.
@@ -305,6 +317,7 @@ export default function CatalogScreen() {
     setActivePickerField(null);
     setIsSubmitting(false);
     setContractYears(null);
+    setRentalItem(null);
     resetPlanForm();
     // 기본 시작일: 오늘
     const today = new Date();
@@ -472,6 +485,8 @@ export default function CatalogScreen() {
         auto_renew: true,
         is_recurring: true,
         contract_end_date: contractYears && startDate ? addMonths(startDate, contractYears * 12) : null,
+        rental_item: rentalItem?.name ?? null,
+        rental_item_icon: rentalItem?.icon ?? null,
       });
       Alert.alert(
         language === 'ko' ? '구독 추가 완료' : 'Subscription Added',
@@ -503,6 +518,7 @@ export default function CatalogScreen() {
     setNewPlanName('');
     setNewPlanPrice('');
     setNewPlanCurrency('KRW');
+    setShowAllCurrencies(false);
     setNewPlanCycle('monthly');
     setNewPlanVatSeparate(false);
     setSavingPlan(false);
@@ -959,7 +975,7 @@ export default function CatalogScreen() {
                         placeholderTextColor={Colors.textTertiary}
                       />
                       <View style={styles.modalPlanChipRow}>
-                        {PLAN_CURRENCIES.map((c) => (
+                        {visibleCurrencies(showAllCurrencies, newPlanCurrency).map((c) => (
                           <TouchableOpacity
                             key={c}
                             style={[styles.modalPlanChip, newPlanCurrency === c && styles.modalPlanChipActive]}
@@ -970,6 +986,11 @@ export default function CatalogScreen() {
                             </Text>
                           </TouchableOpacity>
                         ))}
+                        <TouchableOpacity style={styles.modalPlanChip} onPress={() => setShowAllCurrencies((v) => !v)}>
+                          <Text style={styles.modalPlanChipText}>
+                            {showAllCurrencies ? (language === 'ko' ? '접기' : 'Less') : (language === 'ko' ? '더보기' : 'More')}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                       <View style={styles.modalPlanChipRow}>
                         {PLAN_CYCLES.map((c) => (
@@ -1071,6 +1092,19 @@ export default function CatalogScreen() {
                 {activePickerField && renderCalendarPicker()}
 
                 {/* 약정 기간 — 렌탈은 의무사용기간이 핵심이라 이 분류에서만 묻는다 */}
+                {selectedService.category === 'Rental' && (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={styles.modalSectionTitle}>
+                      {language === 'ko' ? '어떤 기기인가요?' : 'Which device?'}
+                    </Text>
+                    <RentalItemPicker
+                      value={rentalItem}
+                      onChange={setRentalItem}
+                      extras={customRentalItems}
+                      language={language}
+                    />
+                  </View>
+                )}
                 {selectedService.category === 'Rental' && (
                   <View style={{ marginTop: 16 }}>
                     <Text style={styles.modalSectionTitle}>

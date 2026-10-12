@@ -20,3 +20,7 @@ export const PLAN_CURRENCIES = [
   "PHP",
   "MXN",
 ] as const;
+
+/** 위에 바로 보이는 통화. 나머지는 '기타 통화' 묶음으로 내린다(모바일의 '더보기'와 같은 구분). */
+export const MAIN_CURRENCIES: readonly string[] = ["KRW", "USD", "EUR", "JPY"];
+export const OTHER_CURRENCIES = PLAN_CURRENCIES.filter((c) => !MAIN_CURRENCIES.includes(c));

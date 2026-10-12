@@ -17,6 +17,9 @@ import SubscriptionModal from "../components/subscription/SubscriptionModal";
 import { tr } from "../i18n/translations";
 import { nextBillingDate, todayIso } from "../utils/billingDate";
 import { formatAmount, withVat } from "../utils/vat";
+import RentalItemPicker, { type RentalItem } from "../components/subscription/RentalItemPicker";
+import { addMonths } from "../utils/billingDate";
+import { CONTRACT_YEARS } from "../utils/contract";
 
 export default function ServicesPage() {
   const navigate = useNavigate();
@@ -33,6 +36,10 @@ export default function ServicesPage() {
   const [startDate, setStartDate] = useState(todayIso());
   const [nextDate, setNextDate] = useState(todayIso());
   const [saving, setSaving] = useState(false);
+  // 렌탈이면 기기 종류와 약정 기간(년)도 같이 받는다
+  const [rentalItem, setRentalItem] = useState<RentalItem | null>(null);
+  const [contractYears, setContractYears] = useState<number | null>(null);
+  const [rentalExtras, setRentalExtras] = useState<RentalItem[]>([]);
 
   // 카탈로그에 없는 것을 직접 넣는 두 갈래 — 분류(카테고리)와 항목(서비스)
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -91,6 +98,13 @@ export default function ServicesPage() {
     }
   };
 
+  /** 렌탈 분류 서비스인지. 렌탈이면 담을 때 기기 종류·약정 기간을 함께 묻는다. */
+  const isRentalService = (serviceId: number) => {
+    const svc = services.find((s) => s.id === serviceId);
+    const catId = svc?.category_id ?? svc?.category?.id;
+    return categories.find((c) => c.id === catId)?.name === "Rental";
+  };
+
   const handleSubscribe = async () => {
     if (!subscribing) return;
     setSaving(true);
@@ -100,6 +114,9 @@ export default function ServicesPage() {
         plan_id: subscribing.plan.id,
         start_date: startDate,
         next_billing_date: nextDate,
+        contract_end_date: contractYears ? addMonths(startDate, contractYears * 12) : null,
+        rental_item: rentalItem?.name ?? null,
+        rental_item_icon: rentalItem?.icon ?? null,
       });
       toast.success(tr("구독이 등록되었습니다!"));
       setSubscribing(null);
@@ -145,6 +162,15 @@ export default function ServicesPage() {
             setStartDate(start);
             // 시작일과 같은 날을 두면 저장하자마자 결제 임박 알림이 뜬다
             setNextDate(nextBillingDate(start, plan.billing_cycle));
+            setRentalItem(null);
+            setContractYears(null);
+            if (isRentalService(serviceId)) {
+              subscriptionApi.getAll().then((subs) =>
+                setRentalExtras(
+                  subs.flatMap((s) => (s.rental_item ? [{ name: s.rental_item, icon: s.rental_item_icon ?? "📦" }] : []))
+                )
+              ).catch(() => {});
+            }
             setSubscribing({ serviceId, plan });
           }}
           showKrw={showKrw}
@@ -216,6 +242,40 @@ export default function ServicesPage() {
                   className="glass-input mt-1 block w-full rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+              {isRentalService(subscribing.serviceId) && (
+                <>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-500">{tr("어떤 기기인가요?")}</label>
+                    <RentalItemPicker value={rentalItem} onChange={setRentalItem} extras={rentalExtras} />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-500">{tr("약정 기간")}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[null, ...CONTRACT_YEARS].map((y) => (
+                        <button
+                          key={String(y)}
+                          type="button"
+                          onClick={() => setContractYears(y)}
+                          className={`rounded-full border px-3 py-1 text-sm ${
+                            contractYears === y
+                              ? "border-blue-500 bg-blue-100 font-semibold text-blue-700"
+                              : "border-slate-200 text-slate-500"
+                          }`}
+                        >
+                          {y === null ? tr("없음") : tr("{n}년", { n: y })}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">
+                      {contractYears
+                        ? tr("{date}에 약정이 끝나요. 이미 쓰던 렌탈이면 구독 시작일을 계약일로 맞춰 주세요.", {
+                            date: addMonths(startDate, contractYears * 12),
+                          })
+                        : tr("약정을 넣으면 남은 기간을 보여주고 끝나기 30일 전에 알려드려요.")}
+                    </p>
+                  </div>
+                </>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => setSubscribing(null)}

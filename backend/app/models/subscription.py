@@ -59,6 +59,11 @@ class Subscription(Base):
     # 렌탈처럼 의무사용기간이 있는 구독의 약정 종료일. 없으면 약정 없음.
     # 끝나면 소유권이 넘어오거나 렌탈료가 내려가므로 종료 전에 알려 준다.
     contract_end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # 렌탈 기기 종류("정수기")와 그 아이콘(이모지). 같은 업체에서 정수기와 비데를
+    # 함께 빌리면 이게 없을 때 목록에서 둘을 구분할 수 없다. 목록에 없는 기기는
+    # 사용자가 이름·아이콘을 직접 정하므로 정해진 코드가 아니라 문자열로 둔다.
+    rental_item: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    rental_item_icon: Mapped[str | None] = mapped_column(String(16), nullable=True)
     member_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False, server_default="1")
 
     initial_exchange_rate: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)

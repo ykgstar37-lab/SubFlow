@@ -33,6 +33,11 @@ export interface Subscription {
   monthly_cost_krw?: number;
   /** 이 구독 통화의 현재 환율(1 통화 = ? KRW). 원화 구독은 없음. */
   exchange_rate_krw?: number;
+  /** 렌탈 등 약정 종료일. 없으면 약정 없음 */
+  contract_end_date?: string | null;
+  /** 렌탈 기기 종류("정수기")와 아이콘(이모지) */
+  rental_item?: string | null;
+  rental_item_icon?: string | null;
 }
 
 export interface SubscriptionCreateRequest {
@@ -50,6 +55,9 @@ export interface SubscriptionCreateRequest {
   cancel_reminder?: boolean;
   member_count?: number;
   notes?: string;
+  contract_end_date?: string | null;
+  rental_item?: string | null;
+  rental_item_icon?: string | null;
 }
 
 export type SubscriptionUpdateRequest = Partial<SubscriptionCreateRequest>;

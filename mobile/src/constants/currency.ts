@@ -25,6 +25,16 @@ export const CURRENCY_SYMBOLS: Record<string, string> = {
 /** 요금제를 직접 입력할 때 고를 수 있는 통화. */
 export const PLAN_CURRENCIES = Object.keys(CURRENCY_SYMBOLS);
 
+/** 처음부터 펼쳐 두는 통화. 나머지는 '더보기'를 눌러야 나온다 —
+ *  11개를 다 늘어놓으면 칩이 세 줄이 되어 정작 원화를 찾기 어렵다. */
+export const MAIN_CURRENCIES = ['KRW', 'USD', 'EUR', 'JPY'];
+
+/** 지금 보여줄 통화 칩. 접혀 있어도 이미 고른 통화는 빼지 않는다. */
+export function visibleCurrencies(expanded: boolean, selected: string): string[] {
+  if (expanded) return PLAN_CURRENCIES;
+  return MAIN_CURRENCIES.includes(selected) ? MAIN_CURRENCIES : [...MAIN_CURRENCIES, selected];
+}
+
 /** 소수점을 쓰지 않는 통화 (보조단위를 실생활에서 안 쓰는 쪽). */
 const WHOLE_UNIT = new Set(['KRW', 'JPY', 'IDR']);
 

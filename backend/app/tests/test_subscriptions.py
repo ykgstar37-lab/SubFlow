@@ -150,6 +150,46 @@ class TestUpdateSubscription:
         assert data["cost"] == "19.99"
 
 
+class TestRentalFields:
+    async def test_rental_item_and_contract_round_trip(
+        self,
+        test_client: httpx.AsyncClient,
+        auth_headers: dict,
+    ):
+        """기기 종류·약정 종료일을 담고, 바꾸고, null로 지울 수 있다."""
+        payload = _manual_subscription_payload() | {
+            "service_name": "코웨이",
+            "currency": "KRW",
+            "cost": "29900",
+            "rental_item": "정수기",
+            "rental_item_icon": "💧",
+            "contract_end_date": (date.today() + timedelta(days=1000)).isoformat(),
+        }
+        created = await _create_subscription(test_client, auth_headers, payload)
+        assert created["rental_item"] == "정수기"
+        assert created["rental_item_icon"] == "💧"
+        assert created["contract_end_date"] == payload["contract_end_date"]
+
+        # 목록에 없는 기기는 사용자가 이름·아이콘을 직접 정한다
+        resp = await test_client.put(
+            f"/api/v1/subscriptions/{created['id']}",
+            json={"rental_item": "커피머신", "rental_item_icon": "☕"},
+            headers=auth_headers,
+        )
+        assert resp.json()["rental_item"] == "커피머신"
+        # 안 보낸 약정은 그대로다
+        assert resp.json()["contract_end_date"] == payload["contract_end_date"]
+
+        resp = await test_client.put(
+            f"/api/v1/subscriptions/{created['id']}",
+            json={"rental_item": None, "rental_item_icon": None, "contract_end_date": None},
+            headers=auth_headers,
+        )
+        data = resp.json()
+        assert data["rental_item"] is None
+        assert data["contract_end_date"] is None
+
+
 class TestDeleteSubscription:
     async def test_delete_subscription(
         self,

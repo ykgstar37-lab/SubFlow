@@ -122,6 +122,8 @@ export const subscriptionAPI = {
     is_recurring?: boolean;
     member_count?: number;
     contract_end_date?: string | null;
+    rental_item?: string | null;
+    rental_item_icon?: string | null;
   }) => api.post('/subscriptions/from-catalog', data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/subscriptions/${id}`, data),
   cancel: (id: string) => api.delete(`/subscriptions/${id}`),

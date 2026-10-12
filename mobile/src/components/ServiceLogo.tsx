@@ -97,6 +97,8 @@ const LOGOS: Record<string, ImageSourcePropType> = {
   '코웨이': require('../../assets/logos/coway.png'),
   'SK인텔릭스': require('../../assets/logos/skintellix.png'),
   'LG전자 구독': require('../../assets/logos/lgcaresolution.png'),
+  '청호나이스': require('../../assets/logos/chungho.png'),
+  '쿠쿠 렌탈': require('../../assets/logos/cuckoo.png'),
   // ── 사진·영상 ──
   'CapCut Pro': require('../../assets/logos/capcut.png'),
   'SNOW VIP': require('../../assets/logos/snow.png'),
@@ -126,9 +128,6 @@ const BRAND_BG: Record<string, { bg: string; text: string }> = {
   'Vrew': { bg: '#14A1C8', text: '#FFF' },
   'Adobe Lightroom': { bg: '#001E36', text: '#31A8FF' },
   'Picsart Pro': { bg: '#CA0AC1', text: '#FFF' },
-  // 공식 아이콘을 구하지 못한 렌탈 업체는 브랜드색 첫 글자로 그린다
-  '청호나이스': { bg: '#0061AF', text: '#FFF' },
-  '쿠쿠 렌탈': { bg: '#E60012', text: '#FFF' },
   'VSCO': { bg: '#000000', text: '#FFF' },
 };
 

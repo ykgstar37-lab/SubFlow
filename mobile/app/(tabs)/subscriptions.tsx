@@ -15,6 +15,7 @@ import { ServiceLogo } from '../../src/components/ServiceLogo';
 import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { GradientButton } from '../../src/components/GradientButton';
 import { CatalogAddModal } from '../../src/components/CatalogAddModal';
+import { RentalItemPicker, type RentalItem } from '../../src/components/RentalItemPicker';
 import { useSubscriptions, useAnalyticsOverview, useCategories } from '../../src/hooks/useApi';
 import { useBottomSheet } from '../../src/hooks/useBottomSheet';
 import { subscriptionAPI, servicesAPI } from '../../src/services/api';
@@ -45,6 +46,7 @@ type Sub = {
   rateKrw?: number; // 이 통화의 현재 환율 (1 통화 = ? KRW). 원화면 없음
   startDate: string;
   contractEnd: string | null; // 렌탈 등 약정 종료일. 없으면 약정 없음
+  rentalItem: RentalItem | null; // 렌탈 기기 종류 (💧 정수기 등)
 };
 
 /** 날짜에 개월 수를 더한다. 말일은 그 달 길이에 맞춰 당긴다(catalog.tsx와 같은 규칙). */
@@ -123,6 +125,7 @@ export default function SubscriptionsScreen() {
   const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
   const [editStatus, setEditStatus] = useState<Sub['status']>('active');
   const [editContractEnd, setEditContractEnd] = useState<string | null>(null);
+  const [editRentalItem, setEditRentalItem] = useState<RentalItem | null>(null);
   const slideAnim = useRef(new Animated.Value(600)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -153,6 +156,7 @@ export default function SubscriptionsScreen() {
     memberCount: Math.max(1, Number(s.member_count ?? 1)),
     startDate: s.start_date ?? '',
     contractEnd: s.contract_end_date ?? null,
+    rentalItem: s.rental_item ? { name: s.rental_item, icon: s.rental_item_icon ?? '📦' } : null,
   }));
 
   const byStatus = filter === 'all' ? allSubs : allSubs.filter(s => s.status === filter);
@@ -253,6 +257,7 @@ export default function SubscriptionsScreen() {
     setEditDate(sub.nextDate);
     setEditMembers(sub.memberCount);
     setEditContractEnd(sub.contractEnd);
+    setEditRentalItem(sub.rentalItem);
     setEditCategoryId(sub.categoryId);
     setEditStatus(sub.status);
     // 탭은 한 번 뜨면 계속 살아 있다. 서비스 탐색에서 방금 만든 분류가
@@ -424,7 +429,7 @@ export default function SubscriptionsScreen() {
       <View style={styles.subInfo}>
         <Text style={styles.subName}>{sub.name}</Text>
         <Text style={styles.subDetail}>
-          {sub.plan}{sub.category ? ` · ${categoryLabel(sub.category)}` : ''}
+          {sub.rentalItem ? `${sub.rentalItem.icon} ${sub.rentalItem.name} · ` : ''}{sub.plan}{sub.category ? ` · ${categoryLabel(sub.category)}` : ''}
         </Text>
         {sub.memberCount > 1 && (
           <View style={styles.splitBadge}>
@@ -838,6 +843,19 @@ export default function SubscriptionsScreen() {
               )}
             </View>
 
+            {/* 렌탈 기기 종류 — 렌탈 분류이거나 이미 붙어 있을 때만 묻는다 */}
+            {(selectedSub.category === 'Rental' || selectedSub.rentalItem) && (
+              <View style={styles.modalEditRow}>
+                <Text style={styles.modalEditLabel}>{language === 'ko' ? '어떤 기기인가요?' : 'Which device?'}</Text>
+                <RentalItemPicker
+                  value={editRentalItem}
+                  onChange={setEditRentalItem}
+                  extras={allSubs.flatMap((s) => (s.rentalItem ? [s.rentalItem] : []))}
+                  language={language}
+                />
+              </View>
+            )}
+
             {/* 약정 종료일 — 렌탈 의무사용기간. 몇 년 뒤 날짜라 달력 대신 개월·년 단위로 민다 */}
             <View style={styles.modalEditRow}>
               <Text style={styles.modalEditLabel}>{language === 'ko' ? '약정 종료일 (렌탈 등)' : 'Contract ends (rentals)'}</Text>
@@ -1009,6 +1027,11 @@ export default function SubscriptionsScreen() {
                   }
                   if (editContractEnd !== selectedSub.contractEnd) {
                     updateData.contract_end_date = editContractEnd;
+                  }
+                  if (editRentalItem?.name !== selectedSub.rentalItem?.name
+                    || editRentalItem?.icon !== selectedSub.rentalItem?.icon) {
+                    updateData.rental_item = editRentalItem?.name ?? null;
+                    updateData.rental_item_icon = editRentalItem?.icon ?? null;
                   }
                   if (Object.keys(updateData).length > 0) {
                     await subscriptionAPI.update(selectedSub.id, updateData);

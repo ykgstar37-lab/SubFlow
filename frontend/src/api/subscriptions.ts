@@ -31,6 +31,9 @@ export const subscriptionApi = {
     plan_id: number;
     start_date: string;
     next_billing_date: string;
+    contract_end_date?: string | null;
+    rental_item?: string | null;
+    rental_item_icon?: string | null;
   }) =>
     apiClient
       .post<Subscription>("/subscriptions/from-catalog", data)

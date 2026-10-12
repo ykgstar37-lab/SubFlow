@@ -15,6 +15,10 @@ import { tr, fmtMoney, fmtCount } from "../i18n/translations";
 
 export default function SubscriptionsPage() {
   const { subscriptions, categories, loading, refetch } = useSubscriptions();
+  // 다른 렌탈에 붙여 둔 기기는 새로 담을 때도 다시 고를 수 있게 넘긴다
+  const rentalExtras = subscriptions.flatMap((s) =>
+    s.rental_item ? [{ name: s.rental_item, icon: s.rental_item_icon ?? "📦" }] : []
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
   const [saving, setSaving] = useState(false);
@@ -298,6 +302,7 @@ export default function SubscriptionsPage() {
       >
         <SubscriptionForm
           categories={categories}
+          rentalExtras={rentalExtras}
           onSubmit={handleCreate}
           onCancel={() => setModalOpen(false)}
           loading={saving}
@@ -312,6 +317,7 @@ export default function SubscriptionsPage() {
         <SubscriptionForm
           categories={categories}
           initial={editing}
+          rentalExtras={rentalExtras}
           onSubmit={handleUpdate}
           onCancel={() => setEditing(null)}
           loading={saving}

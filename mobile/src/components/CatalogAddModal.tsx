@@ -20,7 +20,7 @@ import type { CatalogCategory } from '../hooks/useApi';
 import { useTranslation } from '../hooks/useTranslation';
 import { useBottomSheet } from '../hooks/useBottomSheet';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius } from '../constants/theme';
-import { PLAN_CURRENCIES as CURRENCIES } from '../constants/currency';
+import { visibleCurrencies } from '../constants/currency';
 
 type Mode = 'category' | 'service';
 
@@ -53,6 +53,7 @@ export function CatalogAddModal({ mode, onClose, categories, onChanged }: Props)
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [price, setPrice] = useState('');
   const [currency, setCurrency] = useState('KRW');
+  const [showAllCurrencies, setShowAllCurrencies] = useState(false);
   const [cycle, setCycle] = useState('monthly');
   const [website, setWebsite] = useState('');
   const [saving, setSaving] = useState(false);
@@ -72,6 +73,7 @@ export function CatalogAddModal({ mode, onClose, categories, onChanged }: Props)
     setCategoryId(null);
     setPrice('');
     setCurrency('KRW');
+    setShowAllCurrencies(false);
     setCycle('monthly');
     setWebsite('');
   };
@@ -270,7 +272,7 @@ export function CatalogAddModal({ mode, onClose, categories, onChanged }: Props)
 
                 <Text style={styles.label}>{isKo ? '통화' : 'Currency'}</Text>
                 <View style={styles.chipRow}>
-                  {CURRENCIES.map((c) => (
+                  {visibleCurrencies(showAllCurrencies, currency).map((c) => (
                     <TouchableOpacity
                       key={c}
                       style={[styles.pill, currency === c && styles.pillActive]}
@@ -279,6 +281,11 @@ export function CatalogAddModal({ mode, onClose, categories, onChanged }: Props)
                       <Text style={[styles.pillText, currency === c && styles.pillTextActive]}>{c}</Text>
                     </TouchableOpacity>
                   ))}
+                  <TouchableOpacity style={styles.pill} onPress={() => setShowAllCurrencies((v) => !v)}>
+                    <Text style={styles.pillText}>
+                      {showAllCurrencies ? (isKo ? '접기' : 'Less') : (isKo ? '더보기' : 'More')}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
                 <Text style={styles.label}>{isKo ? '결제 주기' : 'Billing cycle'}</Text>
