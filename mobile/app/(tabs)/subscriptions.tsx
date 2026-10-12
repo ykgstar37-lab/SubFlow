@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect} from 'expo-router';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { useTranslation } from '../../src/hooks/useTranslation';
@@ -66,6 +66,16 @@ export default function SubscriptionsScreen() {
   const overviewQuery = useAnalyticsOverview();
   // 분류는 서버가 원본이다 — 기본 카탈로그 13종 + 내가 만든 것이 함께 내려온다.
   const categoriesQuery = useCategories();
+
+  // 다른 탭에서 구독을 담고 돌아오면 목록이 예전 그대로였다. 홈만 포커스 때
+  // 다시 읽고 있었던 탓이다. 이 화면도 들어올 때마다 서버를 다시 본다.
+  useFocusEffect(
+    React.useCallback(() => {
+      subsQuery.refetch();
+      overviewQuery.refetch();
+      categoriesQuery.refetch();
+    }, [subsQuery.refetch, overviewQuery.refetch, categoriesQuery.refetch])
+  );
   const categories = (categoriesQuery.data ?? []);
   // 'all'이면 카테고리별로 묶어 보여주고, 하나를 고르면 그 칸만 남긴다.
   // 'none'은 어느 분류에도 안 들어간 구독.

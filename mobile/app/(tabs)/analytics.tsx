@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useFocusEffect} from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useTranslation } from '../../src/hooks/useTranslation';
 import { useBottomSheet } from '../../src/hooks/useBottomSheet';
@@ -68,6 +68,18 @@ export default function AnalyticsScreen() {
   const savings = useSavingsSuggestions();
   const budget = useBudgetStatus();
   const overlaps = useOverlaps();
+
+  // 구독을 담거나 고치고 돌아오면 분석도 다시 계산돼야 한다.
+  useFocusEffect(
+    React.useCallback(() => {
+      overview.refetch();
+      categories.refetch();
+      trend.refetch();
+      savings.refetch();
+      budget.refetch();
+      overlaps.refetch();
+    }, [overview.refetch, categories.refetch, trend.refetch, savings.refetch, budget.refetch, overlaps.refetch])
+  );
   const setMonthlyBudget = useSettingsStore((st) => st.setMonthlyBudget);
 
   const isLoading = overview.loading;

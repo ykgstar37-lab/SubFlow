@@ -50,7 +50,12 @@ export default function CalendarScreen() {
   const syncSettings = useSettingsStore(s => s.syncFromServer);
 
   // 예산은 서버에 있다. 홈을 거치지 않고 이 탭부터 열어도 맞게 보이도록 여기서도 맞춘다.
-  useFocusEffect(useCallback(() => { syncSettings(); }, [syncSettings]));
+  // 예산은 서버에 있고, 구독을 담고 오면 결제 일정도 달라진다. 둘 다 다시 읽는다.
+  useFocusEffect(useCallback(() => {
+    syncSettings();
+    calendarEvents.refetch();
+    timeline.refetch();
+  }, [syncSettings, calendarEvents.refetch, timeline.refetch]));
 
   // 합계는 통화가 섞이므로 원화로 환산해서 더한다. 환율을 못 받았으면
   // 원화 구독만 더해 ₩ 표기가 거짓말이 되지 않게 한다.

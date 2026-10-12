@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useFocusEffect} from 'expo-router';
 import { useTranslation } from '../../src/hooks/useTranslation';
 import { subscriptionAPI, analyticsAPI, servicesAPI } from '../../src/services/api';
 import { useServices, useCategories, type CatalogService } from '../../src/hooks/useApi';
@@ -217,6 +217,14 @@ export default function CatalogScreen() {
 
   // 카테고리도 서버가 원본이다. 기본 13종에 내가 만든 것이 뒤에 붙어 내려온다.
   const { data: rawCategories, refetch: refetchCategories } = useCategories();
+
+  // 담긴 상태(이미 구독 중 배지)가 다른 화면에서 바뀔 수 있어 들어올 때마다 다시 읽는다.
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+      refetchCategories();
+    }, [refetch, refetchCategories])
+  );
   const categories = useMemo(() => rawCategories ?? [], [rawCategories]);
   const categoryPills = useMemo<Category[]>(() => [
     { name: 'All', icon: 'apps', color: Colors.primary },
