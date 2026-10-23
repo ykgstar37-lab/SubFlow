@@ -1074,6 +1074,18 @@ DEFAULT_SERVICES = {
             ],
         },
         {
+            "name": "톡클라우드",
+            "description": "카카오톡 대화·사진·파일 백업 클라우드 (구 톡서랍 플러스)",
+            "website_url": "https://talkcloud.kakao.com",
+            "logo_url": "/logos/kakaotalk.png",
+            "is_popular": True,
+            "plans": [
+                {"name": "30GB", "price": 2900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "50GB", "price": 3900, "currency": "KRW", "billing_cycle": "MONTHLY"},
+                {"name": "50GB 연간", "price": 43000, "currency": "KRW", "billing_cycle": "YEARLY"},
+            ],
+        },
+        {
             "name": "pCloud",
             "description": "유럽 기반 클라우드 저장소 — 평생 요금제 지원",
             "website_url": "https://www.pcloud.com",

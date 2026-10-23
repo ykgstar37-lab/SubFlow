@@ -85,6 +85,7 @@ export const SERVICE_TAGLINES: Record<string, string> = {
   '조선일보 디지털': 'Korean News',
   '중앙일보 디지털': 'Korean News',
   'iCloud+': 'Apple Cloud',
+  '톡클라우드': 'KakaoTalk Backup',
   'pCloud': 'Cloud Storage',
   'MEGA': 'Encrypted Storage',
   'NordVPN': 'VPN Service',

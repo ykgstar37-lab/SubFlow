@@ -115,6 +115,7 @@ SERVICE_ALIASES: dict[str, list[str]] = {
     "중앙일보 디지털": ["중앙일보", "중앙", "joongang"],
     # ── Storage ──
     "iCloud+": ["아이클라우드", "icloud", "애플 클라우드"],
+    "톡클라우드": ["talkcloud", "톡서랍", "톡서랍 플러스", "카톡 백업", "카카오톡 백업", "카카오"],
     "pCloud": ["피클라우드"],
     "MEGA": ["메가"],
     # ── Security & VPN ──

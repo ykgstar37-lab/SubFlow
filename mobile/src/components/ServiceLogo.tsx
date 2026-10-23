@@ -82,6 +82,7 @@ const LOGOS: Record<string, ImageSourcePropType> = {
   '조선일보 디지털': require('../../assets/logos/chosun.png'),
   '중앙일보 디지털': require('../../assets/logos/joongang.png'),
   'iCloud+': require('../../assets/logos/icloud.png'),
+  '톡클라우드': require('../../assets/logos/kakaotalk.png'),
   'pCloud': require('../../assets/logos/pcloud.png'),
   'MEGA': require('../../assets/logos/mega.png'),
   'NordVPN': require('../../assets/logos/nordvpn.png'),
