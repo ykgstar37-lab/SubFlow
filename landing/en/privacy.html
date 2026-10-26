@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — SubFlow</title>
+<link rel="icon" href="/brand/favicon.png" />
+<style>
+  :root {
+    --ground:#f7f8fe; --surface:#fff; --ink
+    :#1b1a2e; --ink-soft:#4a4a63; --ink-faint:#8887a0;
+    --line:#e5e6f5; --indigo:#6366f1; --surface-2:#eef0fb;
+    --font:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI","Malgun Gothic",sans-serif;
+  }
+  @media (prefers-color-scheme: dark){ :root{ --ground:#0e0e1a; --surface:#17172a; --ink:#f2f2fb; --ink-soft:#c2c2da; --ink-faint:#8a8aac; --line:#2a2a45; --indigo:#818cf8; --surface-2:#1e1e36; } }
+  :root[data-theme="light"]{ --ground:#f7f8fe; --surface:#fff; --ink:#1b1a2e; --ink-soft:#4a4a63; --ink-faint:#8887a0; --line:#e5e6f5; --indigo:#6366f1; --surface-2:#eef0fb; }
+  :root[data-theme="dark"]{ --ground:#0e0e1a; --surface:#17172a; --ink:#f2f2fb; --ink-soft:#c2c2da; --ink-faint:#8a8aac; --line:#2a2a45; --indigo:#818cf8; --surface-2:#1e1e36; }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);background:var(--ground);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased;}
+  .top{border-bottom:1px solid var(--line);}
+  .wrap{max-width:760px;margin:0 auto;padding:0 24px;}
+  .top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px;}
+  /* 한국어 | English 전환 */
+  .lang{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;font-size:13px;font-weight:600;}
+  .lang a{color:var(--ink-faint);text-decoration:none;padding:4px 11px;border-radius:999px;}
+  .lang a[aria-current]{background:var(--surface);color:var(--indigo);}
+  .top img{height:18px;display:block;}
+  /* 로고는 배경 테마에 맞춰 검정/흰색 버전을 바꿔 끼운다 */
+  .top .on-dark{display:none;}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .top .on-light{display:none;}
+    :root:not([data-theme="light"]) .top .on-dark{display:block;}
+  }
+  :root[data-theme="dark"] .top .on-light{display:none;}
+  :root[data-theme="dark"] .top .on-dark{display:block;}
+  main{padding:48px 0 80px;}
+  h1{font-size:30px;letter-spacing:-.02em;margin:0 0 6px;}
+  .meta{color:var(--ink-faint);font-size:13px;margin-bottom:8px;}
+  .notice{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:14px;color:var(--ink-soft);margin:20px 0 32px;}
+  .notice b{color:var(--ink);}
+  h2{font-size:20px;margin:38px 0 12px;letter-spacing:-.01em;}
+  h3{font-size:16px;margin:22px 0 8px;}
+  p,li{color:var(--ink-soft);font-size:15px;}
+  a{color:var(--indigo);}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top;color:var(--ink-soft);}
+  th{background:var(--surface-2);color:var(--ink);font-weight:700;}
+  .wrap-scroll{overflow-x:auto;}
+  hr{border:none;border-top:1px solid var(--line);margin:36px 0;}
+  .back{display:inline-block;margin-top:40px;font-size:14px;color:var(--indigo);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap"><a href="/"><img class="on-light" src="/brand/subflow-logo-black.png" alt="SubFlow" /><img class="on-dark" src="/brand/subflow-logo-white.png" alt="" aria-hidden="true" /></a><nav class="lang" aria-label="Language"><a href="/privacy" hreflang="ko">한국어</a><a href="/en/privacy" hreflang="en" aria-current="page">English</a></nav></div></div>
+<main><div class="wrap">
+  <h1>Privacy Policy</h1>
+  <p class="meta">Effective: August 26, 2026 · Last updated: August 26, 2026</p>
+  <p>SubFlow (the "Service") complies with the Personal Information Protection Act of Korea and other applicable laws, and has adopted this policy to protect users' personal information.</p>
+
+  <h2>1. Personal information we collect</h2>
+  <h3>A. On sign-up (required)</h3>
+  <div class="wrap-scroll"><table>
+    <tr><th>Item</th><th>Purpose</th></tr>
+    <tr><td>Email address</td><td>Account identification, sign-in, sending notifications</td></tr>
+    <tr><td>Password</td><td>Account authentication (stored with one-way bcrypt hashing; the original is never kept)</td></tr>
+    <tr><td>Name (nickname)</td><td>Shown inside the Service</td></tr>
+  </table></div>
+  <h3>B. Information you enter yourself</h3>
+  <div class="wrap-scroll"><table>
+    <tr><th>Item</th><th>Purpose</th></tr>
+    <tr><td>Subscription details (service name, price and currency, billing cycle and date, status, notes, etc.)</td><td>Subscription management, analysis and reminders</td></tr>
+    <tr><td>Notification settings (timing, email/push, monthly budget)</td><td>Providing notifications</td></tr>
+    <tr><td>Mobile push token</td><td>Sending app push notifications</td></tr>
+    <tr><td>Bug reports and feedback (what you write, email address, device, app version and browser information, the screen at the time of the report)</td><td>Answering inquiries and finding the cause of errors</td></tr>
+  </table></div>
+  <h3>C. Information generated automatically</h3>
+  <div class="wrap-scroll"><table>
+    <tr><th>Item</th><th>Purpose</th></tr>
+    <tr><td>IP address</td><td>Preventing abuse; rate-limiting sign-in and sign-up requests</td></tr>
+    <tr><td>Service usage history (creating, changing and cancelling subscriptions; payment history)</td><td>Timeline, statistics and price-increase detection</td></tr>
+  </table></div>
+  <h3>D. Information we do not collect</h3>
+  <p>The Service <b>never collects or stores real financial or payment information such as card or bank account numbers.</b> A subscription's "amount" is a number you enter for your own tracking; actual payments happen at each subscription provider.</p>
+
+  <h2>2. Why we use personal information</h2>
+  <ul>
+    <li>Identifying members and authenticating sign-in</li>
+    <li>Core features such as subscription management, spending analysis and budgets</li>
+    <li>Sending reminders (email and push) for billing dates, price increases, trial endings and budget overruns</li>
+    <li>Preventing abuse and keeping the Service stable</li>
+  </ul>
+
+  <h2>3. How long we keep it</h2>
+  <ul>
+    <li><b>Member information</b>: kept until you delete your account, and destroyed without delay on request.</li>
+    <li>When you delete your account, your subscriptions, notification settings and usage history are deleted with it.</li>
+    <li>Where a law requires a separate retention period, we keep the data for that period.</li>
+  </ul>
+
+  <h2>4. Sharing with third parties and outsourcing</h2>
+  <p>The Service never sells personal information or provides it to third parties. To run the Service, we outsource the following tasks.</p>
+  <div class="wrap-scroll"><table>
+    <tr><th>Processor</th><th>Task</th><th>Data sent</th></tr>
+    <tr><td>Email delivery service (SMTP provider)</td><td>Sending notification emails</td><td>Recipient email address, notification content</td></tr>
+    <tr><td>Expo (mobile push service)</td><td>Sending app push notifications</td><td>Push token, notification content</td></tr>
+    <tr><td>OpenAI</td><td>Summarizing news articles</td><td>News headlines and sources <b>(no user personal information or subscription data is sent)</b></td></tr>
+  </table></div>
+  <p>ℹ️ The news summary feature sends only public news headlines to the external AI. <b>Personal data, such as which services you subscribe to, is never sent outside.</b></p>
+
+  <h2>5. How we destroy personal information</h2>
+  <ul>
+    <li>We destroy data without delay once the retention period ends or its purpose is fulfilled.</li>
+    <li>Electronic files are deleted in a way that cannot be recovered.</li>
+  </ul>
+
+  <h2>6. Your rights</h2>
+  <p>You may at any time ask to see, correct or delete your personal information, ask us to stop processing it, or delete your account. You can edit or delete your account and subscriptions yourself in the Service's settings; other requests can be sent to the contact below.</p>
+
+  <h2>7. How we keep it safe</h2>
+  <ul>
+    <li><b>One-way password hashing</b> (bcrypt) — not even administrators can see the original</li>
+    <li><b>JWT-based authentication</b> with token expiry and refresh</li>
+    <li><b>Rate limits on sign-in and sign-up</b> (against brute-force attacks)</li>
+    <li>Secret keys and database credentials kept in <b>separate environment variables</b></li>
+  </ul>
+
+  <h2>8. Privacy officer</h2>
+  <p>For questions, complaints or remedies regarding personal information, please contact:</p>
+  <ul>
+    <li>Privacy officer: <b>Gyeongeun Yoon</b></li>
+    <li>Contact: <b>yge0307@gmail.com</b></li>
+  </ul>
+  <p>Other reports and counselling on privacy violations (Korea): Personal Information Infringement Report Center (privacy.kisa.or.kr / 118), Korean National Police Agency Cyber Bureau (ecrm.police.go.kr / 182)</p>
+
+  <h2>9. Changes to this policy</h2>
+  <p>This policy may change with laws or the Service. We announce changes in the Service or on this page.</p>
+
+  <a class="back" href="/">← SubFlow home</a>
+</div></main>
+</body>
+</html>

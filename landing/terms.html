@@ -18,7 +18,11 @@
   body{margin:0;font-family:var(--font);background:var(--ground);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased;}
   .top{border-bottom:1px solid var(--line);}
   .wrap{max-width:760px;margin:0 auto;padding:0 24px;}
-  .top .wrap{display:flex;align-items:center;height:60px;}
+  .top .wrap{display:flex;align-items:center;justify-content:space-between;height:60px;}
+  /* 한국어 | English 전환 */
+  .lang{display:flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;font-size:13px;font-weight:600;}
+  .lang a{color:var(--ink-faint);text-decoration:none;padding:4px 11px;border-radius:999px;}
+  .lang a[aria-current]{background:var(--surface);color:var(--indigo);}
   .top img{height:18px;display:block;}
   /* 로고는 배경 테마에 맞춰 검정/흰색 버전을 바꿔 끼운다 */
   .top .on-dark{display:none;}
@@ -40,7 +44,7 @@
 </style>
 </head>
 <body>
-<div class="top"><div class="wrap"><a href="./index.html"><img class="on-light" src="./brand/subflow-logo-black.png" alt="SubFlow" /><img class="on-dark" src="./brand/subflow-logo-white.png" alt="" aria-hidden="true" /></a></div></div>
+<div class="top"><div class="wrap"><a href="./index.html"><img class="on-light" src="./brand/subflow-logo-black.png" alt="SubFlow" /><img class="on-dark" src="./brand/subflow-logo-white.png" alt="" aria-hidden="true" /></a><nav class="lang" aria-label="Language"><a href="/terms" hreflang="ko" aria-current="page">한국어</a><a href="/en/terms" hreflang="en">English</a></nav></div></div>
 <main><div class="wrap">
   <h1>이용약관</h1>
   <p class="meta">시행일자: 2026년 8월 26일</p>
