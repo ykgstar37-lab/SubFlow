@@ -42,28 +42,73 @@ interface Subscription {
   currency: string;
   cycle: string;       // 결제 주기 — monthly/yearly/weekly/quarterly
   startDate: string; // YYYY-MM-DD
+  nextDate: string | null;     // 다음 결제일 YYYY-MM-DD
+  contractEnd: string | null;  // 렌탈 등 약정 종료일. 없으면 약정 없음
   priceNews?: string;
 }
 
 
 
 
-function getDurationText(startDateStr: string) {
+function getDurationText(startDateStr: string, language: string) {
   const start = new Date(startDateStr);
   const now = new Date();
-  
+
   let years = now.getFullYear() - start.getFullYear();
   let months = now.getMonth() - start.getMonth();
-  
+
   if (months < 0) {
     years--;
     months += 12;
   }
-  
+
+  if (language === 'ko') {
+    return years > 0 ? `구독한 지 ${years}년 ${months}개월` : `구독한 지 ${months}개월`;
+  }
   if (years > 0) {
     return `Subscribed for ${years}y ${months}m`;
   }
   return `Subscribed for ${months}m`;
+}
+
+/** 날짜에 개월 수를 더한다. 말일은 그 달 길이에 맞춰 당긴다(subscriptions.tsx와 같은 규칙). */
+function addMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const total = m - 1 + months;
+  const year = y + Math.floor(total / 12);
+  const month = ((total % 12) + 12) % 12;
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return [year, String(month + 1).padStart(2, '0'), String(Math.min(d, lastDay)).padStart(2, '0')].join('-');
+}
+
+const CYCLE_MONTHS: Record<string, number> = { monthly: 1, quarterly: 3, yearly: 12 };
+
+/** 약정 진행 상황. 진행률은 날 단위(시작일→종료일)라 매일 조금씩 찬다.
+ *  남은 결제는 다음 결제일부터 주기만큼 밀며 종료일 전까지 센다
+ *  (subscriptions.tsx의 contractRemaining과 같은 규칙). */
+function contractProgress(sub: Subscription) {
+  if (!sub.contractEnd || !sub.startDate) return null;
+  const DAY = 86400000;
+  const today = new Date().toISOString().split('T')[0];
+  const start = new Date(sub.startDate).getTime();
+  const end = new Date(sub.contractEnd).getTime();
+  const now = new Date(today).getTime();
+  if (end <= start) return null;
+  const ratio = Math.min(Math.max((now - start) / (end - start), 0), 1);
+  const daysLeft = Math.round((end - now) / DAY);
+
+  // 전체·지난 개월 수 — 시작일에서 한 달씩 더해 보며 센다
+  let totalMonths = 0;
+  while (addMonths(sub.startDate, totalMonths + 1) <= sub.contractEnd && totalMonths < 1200) totalMonths++;
+  let elapsedMonths = 0;
+  while (elapsedMonths < totalMonths && addMonths(sub.startDate, elapsedMonths + 1) <= today) elapsedMonths++;
+
+  const step = CYCLE_MONTHS[sub.cycle];
+  let payments = 0;
+  if (step && sub.nextDate) {
+    for (let d = sub.nextDate; d < sub.contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
+  }
+  return { ratio, daysLeft, totalMonths, elapsedMonths, payments, remaining: payments * sub.amount };
 }
 
 // ── 구독 지출 비중 바코드 차트 ──
@@ -233,6 +278,8 @@ export default function HomeScreen() {
       currency: s.currency ?? 'KRW',
       cycle: String(s.billing_cycle ?? 'monthly').toLowerCase(),
       startDate: s.start_date ?? s.started_at ?? s.created_at ?? '2024-01-01',
+      nextDate: s.next_billing_date ?? null,
+      contractEnd: s.contract_end_date ?? null,
     }));
 
   const hasSubs = subs.length > 0;
@@ -243,11 +290,14 @@ export default function HomeScreen() {
     priceChangeById[String(a.subscription_id)] = Number(a.change_amount ?? 0);
   }
 
-  const EMPTY_SUB: Subscription = { id: '', name: '', amount: 0, monthlyKrw: 0, currency: 'KRW', cycle: 'monthly', startDate: '' };
+  const EMPTY_SUB: Subscription = { id: '', name: '', amount: 0, monthlyKrw: 0, currency: 'KRW', cycle: 'monthly', startDate: '', nextDate: null, contractEnd: null };
   // 통화가 섞이면 단순 합산이 부정확하므로 백엔드가 KRW로 환산한 월 총액을 사용 (예산도 KRW라 비교 일관)
   const totalMonthlySpend = Number((overviewQuery.data as any)?.total_monthly_cost ?? subs.reduce((sum, s) => sum + s.monthlyKrw, 0));
   const activeSub = subs[Math.min(activeIndex, subs.length - 1)] ?? subs[0] ?? EMPTY_SUB;
   const spendPercent = totalMonthlySpend > 0 ? ((activeSub.monthlyKrw / totalMonthlySpend) * 100).toFixed(1) : '0';
+  const contract = contractProgress(activeSub);
+  // 끝남 → 회색, 30일 안 → 주황, 그 외 → 파랑. 구독 탭 D-day 배지와 같은 30일 기준
+  const contractTone = !contract ? null : contract.daysLeft <= 0 ? 'done' : contract.daysLeft <= 30 ? 'soon' : 'active';
 
   // ── 예산 계산 ──
   const budget = monthlyBudget ?? 0;
@@ -482,7 +532,50 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.durationText}>{getDurationText(activeSub.startDate)}</Text>
+                <Text style={styles.durationText}>{getDurationText(activeSub.startDate, language)}</Text>
+
+                {/* 약정 진행률 — 렌탈처럼 약정 종료일이 있는 구독만 */}
+                {contract && (
+                  <View style={[
+                    styles.contractBox,
+                    contractTone === 'soon' && { backgroundColor: Colors.warningSoft },
+                    contractTone === 'done' && { backgroundColor: Colors.borderLight },
+                  ]}>
+                    <View style={styles.contractTop}>
+                      <Text style={[
+                        styles.contractLabel,
+                        contractTone === 'soon' && { color: Colors.warningText },
+                        contractTone === 'done' && { color: Colors.textSecondary },
+                      ]}>
+                        {contractTone === 'done'
+                          ? (language === 'ko' ? '약정 끝남' : 'Contract ended')
+                          : contractTone === 'soon'
+                            ? (language === 'ko' ? `약정 D-${contract.daysLeft}` : `Contract D-${contract.daysLeft}`)
+                            : (language === 'ko'
+                              ? `약정 ${contract.elapsedMonths} / ${contract.totalMonths}개월`
+                              : `Contract ${contract.elapsedMonths} / ${contract.totalMonths} mo`)}
+                      </Text>
+                      <Text style={styles.contractPct}>{Math.floor(contract.ratio * 100)}%</Text>
+                    </View>
+                    <View style={styles.contractTrack}>
+                      <View style={[
+                        styles.contractFill,
+                        { width: `${contract.ratio * 100}%` },
+                        contractTone === 'soon' && { backgroundColor: Colors.warning },
+                        contractTone === 'done' && { backgroundColor: Colors.textTertiary },
+                      ]} />
+                    </View>
+                    <Text style={styles.contractSub}>
+                      {contractTone === 'done'
+                        ? (language === 'ko'
+                          ? `${activeSub.contractEnd} 종료 · 이제 위약금 없이 해지할 수 있어요`
+                          : `Ended ${activeSub.contractEnd} · No early-termination fee now`)
+                        : (language === 'ko'
+                          ? `${activeSub.contractEnd} 종료 · 남은 결제 ${contract.payments}회 ${formatPrice(contract.remaining, activeSub.currency)}`
+                          : `Ends ${activeSub.contractEnd} · ${contract.payments} payments left, ${formatPrice(contract.remaining, activeSub.currency)}`)}
+                    </Text>
+                  </View>
+                )}
 
                 <View style={styles.percentRow}>
                   <Text style={styles.largePercent}>{spendPercent}%</Text>
@@ -958,6 +1051,46 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: FontWeight.medium,
     marginTop: 6,
+  },
+  contractBox: {
+    marginTop: Spacing.md,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
+    borderRadius: 18,
+    backgroundColor: Colors.primary + '1A',
+  },
+  contractTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  contractLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    color: Colors.primary,
+  },
+  contractPct: {
+    fontSize: 20,
+    fontWeight: FontWeight.heavy,
+    color: Colors.textPrimary,
+  },
+  contractTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    marginTop: 6,
+    overflow: 'hidden',
+  },
+  contractFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+  },
+  contractSub: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 8,
   },
   percentBadge: {
     backgroundColor: Colors.success + '25',
