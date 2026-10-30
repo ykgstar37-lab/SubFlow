@@ -29,6 +29,15 @@ export function addMonths(iso: string, months: number): string {
  * 한 주기를 건너뛴 것으로 처리한다.
  */
 export function nextBillingDate(startIso: string, cycle: BillingCycle): string {
+  // 몇 년 전에 시작한 렌탈이면 '시작일 + 1주기'는 이미 지난 날이다. 오늘 이후의
+  // 첫 결제일까지 민다. 모바일 catalog.tsx의 nextBillingDate와 같은 규칙.
+  const today = todayIso();
+  let d = advanceOnce(startIso, cycle);
+  for (let i = 0; d < today && i < 1000; i++) d = advanceOnce(d, cycle);
+  return d;
+}
+
+function advanceOnce(startIso: string, cycle: BillingCycle): string {
   switch (cycle) {
     case "weekly": {
       const d = new Date(`${startIso}T00:00:00`);
