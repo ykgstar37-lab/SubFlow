@@ -297,7 +297,7 @@ export default function HomeScreen() {
   const spendPercent = totalMonthlySpend > 0 ? ((activeSub.monthlyKrw / totalMonthlySpend) * 100).toFixed(1) : '0';
   const contract = contractProgress(activeSub);
   // 끝남 → 회색, 30일 안 → 주황, 그 외 → 파랑. 구독 탭 D-day 배지와 같은 30일 기준
-  const contractTone = !contract ? null : contract.daysLeft <= 0 ? 'done' : contract.daysLeft <= 30 ? 'soon' : 'active';
+  const contractTone = !contract ? null : contract.daysLeft < 0 ? 'done' : contract.daysLeft <= 30 ? 'soon' : 'active';
 
   // ── 예산 계산 ──
   const budget = monthlyBudget ?? 0;

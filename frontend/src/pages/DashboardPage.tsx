@@ -15,6 +15,7 @@ import {
 import CategoryPieChart from "../components/analytics/CategoryPieChart";
 import MonthlySpendingChart from "../components/analytics/MonthlySpendingChart";
 import BudgetStatus from "../components/dashboard/BudgetStatus";
+import ContractTracker from "../components/dashboard/ContractTracker";
 import ExchangeRateAlert from "../components/dashboard/ExchangeRateAlert";
 import NewsWidget from "../components/dashboard/NewsWidget";
 import OverlapWarning from "../components/dashboard/OverlapWarning";
@@ -292,6 +293,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="mb-8 space-y-4">
+          <ContractTracker subscriptions={activeSubscriptions} />
           {trials && trials.trials.length > 0 && <TrialTracker trials={trials.trials} />}
           {overlaps && overlaps.overlaps.length > 0 && <OverlapWarning overlaps={overlaps.overlaps} />}
           {priceChanges && priceChanges.alerts.length > 0 && <PriceChangeAlert alerts={priceChanges.alerts} />}

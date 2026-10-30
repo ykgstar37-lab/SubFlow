@@ -26,5 +26,27 @@ export function contractRemaining(
   return { days, payments, total: payments * cost };
 }
 
+/**
+ * 약정이 얼마나 찼는지. 진행률은 날 단위(시작일→종료일)라 매일 조금씩 찬다.
+ * 개월 수는 시작일에서 한 달씩 더해 보며 센다. 모바일 index.tsx의
+ * contractProgress와 같은 규칙이다.
+ */
+export function contractProgress(
+  startDate: string | null | undefined,
+  contractEnd: string | null | undefined
+): { ratio: number; elapsedMonths: number; totalMonths: number } | null {
+  if (!startDate || !contractEnd) return null;
+  const today = new Date().toISOString().split("T")[0];
+  const start = new Date(startDate).getTime();
+  const end = new Date(contractEnd).getTime();
+  if (end <= start) return null;
+  const ratio = Math.min(Math.max((new Date(today).getTime() - start) / (end - start), 0), 1);
+  let totalMonths = 0;
+  while (addMonths(startDate, totalMonths + 1) <= contractEnd && totalMonths < 1200) totalMonths++;
+  let elapsedMonths = 0;
+  while (elapsedMonths < totalMonths && addMonths(startDate, elapsedMonths + 1) <= today) elapsedMonths++;
+  return { ratio, elapsedMonths, totalMonths };
+}
+
 /** 렌탈 의무사용기간으로 흔한 값(년) */
 export const CONTRACT_YEARS = [3, 4, 5, 6];
