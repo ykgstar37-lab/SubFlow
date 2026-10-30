@@ -525,20 +525,8 @@ export default function HomeScreen() {
           {/* ── 상세 분석 카드 (Glassmorphism) ── */}
           <View style={styles.mainCardStack}>
             <View style={[styles.mainWhiteCard, styles.glassBackground]}>
-              <View style={styles.paymentWrap}>
-                <View style={styles.paymentHeader}>
-                  <View style={styles.paymentHeaderTitle}>
-                    <Ionicons name="analytics" size={20} color={Colors.textPrimary} />
-                    <Text style={styles.paymentTitle}>{t('home.spendingAnalysis')}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.roundArrowBtn} onPress={() => router.push('/(tabs)/analytics')}>
-                    <Ionicons name="arrow-forward" size={16} color={Colors.textPrimary} />
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.durationText}>{getDurationText(activeSub.startDate, language)}</Text>
-
-                {/* 약정 진행률 — 렌탈처럼 약정 종료일이 있는 구독만 */}
+              <View style={[styles.paymentWrap, contract && styles.paymentWrapWithContract]}>
+                {/* 약정 진행률 — 렌탈처럼 약정 종료일이 있는 구독만. 카드 위쪽 빈자리에 둔다 */}
                 {contract && (
                   <View style={[
                     styles.contractBox,
@@ -580,6 +568,18 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                 )}
+
+                <View style={styles.paymentHeader}>
+                  <View style={styles.paymentHeaderTitle}>
+                    <Ionicons name="analytics" size={20} color={Colors.textPrimary} />
+                    <Text style={styles.paymentTitle}>{t('home.spendingAnalysis')}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.roundArrowBtn} onPress={() => router.push('/(tabs)/analytics')}>
+                    <Ionicons name="arrow-forward" size={16} color={Colors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.durationText}>{getDurationText(activeSub.startDate, language)}</Text>
 
                 <View style={styles.percentRow}>
                   <Text style={styles.largePercent}>{spendPercent}%</Text>
@@ -1057,7 +1057,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   contractBox: {
-    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
     paddingHorizontal: 14,
     paddingTop: 12,
     paddingBottom: 10,
@@ -1253,6 +1253,10 @@ const styles = StyleSheet.create({
   // ── Sections ──
   paymentWrap: {
     marginTop: 60,
+  },
+  // 약정 블록이 있으면 위쪽 빈자리(월 구독료 알약 아래)에 블록을 올린다
+  paymentWrapWithContract: {
+    marginTop: 20,
   },
   paymentHeader: {
     flexDirection: 'row',
