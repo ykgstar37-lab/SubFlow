@@ -10,7 +10,7 @@ import type {
 import { serviceApi } from "../../api/services";
 import { tr, fmtMoney } from "../../i18n/translations";
 import RentalItemPicker, { type RentalItem } from "./RentalItemPicker";
-import { addMonths } from "../../utils/billingDate";
+import { addMonths, nextBillingDate } from "../../utils/billingDate";
 import { contractRemaining } from "../../utils/contract";
 
 interface Props {
@@ -374,6 +374,9 @@ export default function SubscriptionForm({
               setForm({
                 ...form,
                 billing_cycle: e.target.value as BillingCycle,
+                ...(!isEditing && form.start_date
+                  ? { next_billing_date: nextBillingDate(form.start_date, e.target.value as BillingCycle) }
+                  : {}),
               })
             }
             className="glass-input mt-1 block w-full rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -392,7 +395,16 @@ export default function SubscriptionForm({
           <input
             type="date"
             value={form.start_date}
-            onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                start_date: e.target.value,
+                // 새로 추가할 때만 다음 결제일을 따라 옮긴다. 수정 중엔 저장된 값을 건드리지 않는다.
+                ...(!isEditing && e.target.value
+                  ? { next_billing_date: nextBillingDate(e.target.value, form.billing_cycle) }
+                  : {}),
+              })
+            }
             className="glass-input mt-1 block w-full rounded-lg px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
