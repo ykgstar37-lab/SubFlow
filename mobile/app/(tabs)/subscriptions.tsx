@@ -72,7 +72,10 @@ function contractRemaining(sub: Sub): { days: number; payments: number; total: n
   const step = CYCLE_MONTHS[sub.cycle.toLowerCase()];
   let payments = 0;
   if (step && sub.nextDate !== '—') {
-    for (let d = sub.nextDate; d < sub.contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
+    // 저장된 다음 결제일이 지난 날이면 이미 낸 결제까지 센다. 오늘 이후부터 센다.
+    let d = sub.nextDate;
+    for (let i = 0; d < today && i < 1000; i++) d = addMonths(d, step);
+    for (; d < sub.contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
   }
   return { days, payments, total: payments * sub.amount };
 }

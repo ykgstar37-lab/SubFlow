@@ -106,7 +106,11 @@ function contractProgress(sub: Subscription) {
   const step = CYCLE_MONTHS[sub.cycle];
   let payments = 0;
   if (step && sub.nextDate) {
-    for (let d = sub.nextDate; d < sub.contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
+    // 저장된 다음 결제일이 지난 날이면(서버 갱신은 하루 한 번) 이미 낸 결제까지 세게 된다.
+    // 오늘 이후 첫 결제일부터 센다.
+    let d = sub.nextDate;
+    for (let i = 0; d < today && i < 1000; i++) d = addMonths(d, step);
+    for (; d < sub.contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
   }
   return { ratio, daysLeft, totalMonths, elapsedMonths, payments, remaining: payments * sub.amount };
 }

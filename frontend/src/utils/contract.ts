@@ -21,7 +21,10 @@ export function contractRemaining(
   const step = CYCLE_MONTHS[cycle.toLowerCase()];
   let payments = 0;
   if (step && nextBillingDate) {
-    for (let d = nextBillingDate; d < contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
+    // 저장된 다음 결제일이 지난 날이면 이미 낸 결제까지 센다. 오늘 이후부터 센다.
+    let d = nextBillingDate;
+    for (let i = 0; d < today && i < 1000; i++) d = addMonths(d, step);
+    for (; d < contractEnd && payments < 1000; d = addMonths(d, step)) payments++;
   }
   return { days, payments, total: payments * cost };
 }
