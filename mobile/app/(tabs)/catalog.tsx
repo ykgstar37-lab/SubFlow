@@ -27,6 +27,7 @@ import { ServiceLogo } from '../../src/components/ServiceLogo';
 import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { CatalogAddModal } from '../../src/components/CatalogAddModal';
 import { GradientButton } from '../../src/components/GradientButton';
+import { YearMonthGrid, calTitleStyles } from '../../src/components/YearMonthGrid';
 import {
   Colors,
   Spacing,
@@ -139,8 +140,17 @@ function addMonths(iso: string, months: number): string {
 }
 
 /** 시작일 + 결제 주기 = 다음 결제일. 시작일과 같은 날로 두면 담자마자
- *  결제 임박 알림이 뜨고 갱신 스케줄러가 한 주기를 건너뛴 것으로 본다. */
+ *  결제 임박 알림이 뜨고 갱신 스케줄러가 한 주기를 건너뛴 것으로 본다.
+ *  몇 년 전에 시작한 렌탈이면 '시작일 + 1달'은 이미 지난 날이다. 오늘 이후의
+ *  첫 결제일까지 주기만큼 밀어서, 사용자가 다음 결제일을 따로 찾지 않게 한다. */
 function nextBillingDate(startIso: string, cycle: string): string {
+  const today = new Date().toISOString().split('T')[0];
+  let d = advanceOnce(startIso, cycle);
+  for (let i = 0; d < today && i < 1000; i++) d = advanceOnce(d, cycle);
+  return d;
+}
+
+function advanceOnce(startIso: string, cycle: string): string {
   const c = (cycle || 'MONTHLY').toUpperCase();
   if (c === 'WEEKLY') {
     const d = new Date(`${startIso}T00:00:00`);
@@ -267,6 +277,7 @@ export default function CatalogScreen() {
   const [activePickerField, setActivePickerField] = useState<'start' | 'next' | null>(null);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [ymOpen, setYmOpen] = useState(false); // 달력 제목을 눌러 연·월 칸을 연 상태
   const [isSubmitting, setIsSubmitting] = useState(false);
   // 약정 기간(개월). null이면 약정 없음. 3~6년 칩 외에 39개월 같은 기간은 직접 적는다.
   const [contractMonths, setContractMonths] = useState<number | null>(null);
@@ -420,6 +431,7 @@ export default function CatalogScreen() {
       setCalYear(d.getFullYear());
       setCalMonth(d.getMonth());
     }
+    setYmOpen(false);
     setActivePickerField(field);
   };
 
@@ -429,13 +441,24 @@ export default function CatalogScreen() {
         <TouchableOpacity onPress={() => { if (calMonth === 0) { setCalYear(y => y - 1); setCalMonth(11); } else setCalMonth(m => m - 1); }}>
           <Ionicons name="chevron-back" size={18} color={Colors.textTertiary} />
         </TouchableOpacity>
-        <Text style={styles.calNavTitle}>
-          {language === 'ko' ? `${calYear}년 ${CAL_MONTHS_KO[calMonth]}` : `${CAL_MONTHS_EN[calMonth]} ${calYear}`}
-        </Text>
+        <TouchableOpacity style={calTitleStyles.row} onPress={() => setYmOpen((v) => !v)}>
+          <Text style={calTitleStyles.text}>
+            {language === 'ko' ? `${calYear}년 ${CAL_MONTHS_KO[calMonth]}` : `${CAL_MONTHS_EN[calMonth]} ${calYear}`}
+          </Text>
+          <Ionicons name={ymOpen ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textTertiary} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => { if (calMonth === 11) { setCalYear(y => y + 1); setCalMonth(0); } else setCalMonth(m => m + 1); }}>
           <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
         </TouchableOpacity>
       </View>
+      {ymOpen ? (
+        <YearMonthGrid
+          year={calYear}
+          month={calMonth}
+          language={language}
+          onChange={(y, m, done) => { setCalYear(y); setCalMonth(m); if (done) setYmOpen(false); }}
+        />
+      ) : (<>
       <View style={styles.calWeekRow}>
         {(language === 'ko' ? CAL_DAYS_KO : CAL_DAYS_EN).map((d, i) => (
           <Text key={i} style={styles.calWeekDay}>{d}</Text>
@@ -462,6 +485,7 @@ export default function CatalogScreen() {
           );
         })}
       </View>
+      </>)}
     </View>
   );
 
@@ -1478,7 +1502,6 @@ const styles = StyleSheet.create({
   // 캘린더
   calendarPicker: { backgroundColor: Colors.surfaceLight, borderRadius: 16, padding: 14, marginTop: Spacing.md },
   calNav: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: Spacing.md },
-  calNavTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.textPrimary },
   calWeekRow: { flexDirection: 'row', marginBottom: Spacing.sm },
   calWeekDay: { flex: 1, textAlign: 'center', fontSize: 10, fontWeight: FontWeight.heavy, color: Colors.textTertiary },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },

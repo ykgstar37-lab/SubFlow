@@ -16,6 +16,7 @@ import { AppLogoMark } from '../../src/components/AppLogoMark';
 import { GradientButton } from '../../src/components/GradientButton';
 import { CatalogAddModal } from '../../src/components/CatalogAddModal';
 import { RentalItemPicker, type RentalItem } from '../../src/components/RentalItemPicker';
+import { YearMonthGrid, calTitleStyles } from '../../src/components/YearMonthGrid';
 import { useSubscriptions, useAnalyticsOverview, useCategories } from '../../src/hooks/useApi';
 import { useBottomSheet } from '../../src/hooks/useBottomSheet';
 import { subscriptionAPI, servicesAPI } from '../../src/services/api';
@@ -138,6 +139,7 @@ export default function SubscriptionsScreen() {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [ymOpen, setYmOpen] = useState(false); // 달력 제목을 눌러 연·월 칸을 연 상태
 
   const apiSubs = (subsQuery.data as any[]) ?? [];
   const allSubs: Sub[] = apiSubs.map((s: any) => ({
@@ -763,7 +765,7 @@ export default function SubscriptionsScreen() {
               <Text style={styles.modalEditLabel}>{language === 'ko' ? '다음 결제일' : 'Next Payment'}</Text>
               <TouchableOpacity
                 style={styles.modalEditInput}
-                onPress={() => setDatePickerVisible(!datePickerVisible)}
+                onPress={() => { setYmOpen(false); setDatePickerVisible(!datePickerVisible); }}
                 activeOpacity={0.6}
               >
                 <Text style={{ fontSize: FontSize.md, color: editDate && editDate !== '—' ? Colors.textPrimary : Colors.textTertiary }}>
@@ -780,13 +782,24 @@ export default function SubscriptionsScreen() {
                   <TouchableOpacity onPress={calPrevMonth}>
                     <Ionicons name="chevron-back" size={18} color={Colors.textTertiary} />
                   </TouchableOpacity>
-                  <Text style={styles.calNavTitle}>
-                    {language === 'ko' ? `${calYear}년 ${MONTHS_KO[calMonth]}` : `${MONTHS_EN[calMonth]} ${calYear}`}
-                  </Text>
+                  <TouchableOpacity style={calTitleStyles.row} onPress={() => setYmOpen((v) => !v)}>
+                    <Text style={calTitleStyles.text}>
+                      {language === 'ko' ? `${calYear}년 ${MONTHS_KO[calMonth]}` : `${MONTHS_EN[calMonth]} ${calYear}`}
+                    </Text>
+                    <Ionicons name={ymOpen ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textTertiary} />
+                  </TouchableOpacity>
                   <TouchableOpacity onPress={calNextMonth}>
                     <Ionicons name="chevron-forward" size={18} color={Colors.textTertiary} />
                   </TouchableOpacity>
                 </View>
+                {ymOpen ? (
+                  <YearMonthGrid
+                    year={calYear}
+                    month={calMonth}
+                    language={language}
+                    onChange={(y, m, done) => { setCalYear(y); setCalMonth(m); if (done) setYmOpen(false); }}
+                  />
+                ) : (<>
                 <View style={styles.calWeekRow}>
                   {(language === 'ko' ? CAL_DAYS_KO : CAL_DAYS_EN).map((d, i) => (
                     <Text key={i} style={styles.calWeekDay}>{d}</Text>
@@ -813,6 +826,7 @@ export default function SubscriptionsScreen() {
                     );
                   })}
                 </View>
+                </>)}
               </View>
             )}
 
@@ -1219,7 +1233,6 @@ const styles = StyleSheet.create({
   // 캘린더 날짜 선택
   calendarPicker: { backgroundColor: Colors.surfaceLight, borderRadius: 16, padding: 14, marginBottom: Spacing.lg },
   calNav: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: Spacing.md },
-  calNavTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.textPrimary },
   calWeekRow: { flexDirection: 'row', marginBottom: Spacing.sm },
   calWeekDay: { flex: 1, textAlign: 'center', fontSize: 10, fontWeight: FontWeight.heavy, color: Colors.textTertiary },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
