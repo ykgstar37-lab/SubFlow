@@ -39,6 +39,7 @@ SubFlow는 카드사 연동 없이 **사용자가 직접 기록하는 방식**�
 | 🕐 | **타임라인** | 가입·요금제 변경·일시정지·해지 이력 추적 |
 | 💱 | **환율 + 부가세** | 외화 구독을 실시간 환율로 KRW 환산, 표시가에 붙는 부가세 10% 반영 |
 | 👥 | **분담 계산** | 가족·팀 공유 구독의 1인당 실부담액 계산 |
+| 🏠 | **렌탈 약정** | 정수기·비데 같은 렌탈의 약정 기간 기록. 진행률(22/36개월 · 62%), 남은 결제 횟수·금액, 종료 30일 전 알림 |
 | 🔔 | **알림** | 결제 N일 전 알림을 **이메일 + 푸시로 실제 발송**, 주간 다이제스트 |
 | 💰 | **예산** | 월 예산 설정 및 초과 경고 |
 | 📰 | **뉴스 + AI 요약** | 구독 서비스 관련 뉴스, OpenAI 기반 한 줄 요약 |
@@ -201,6 +202,15 @@ cd backend && pytest        # 14개 파일 / 116개 테스트 — 인증·구독
 | iOS/Android | EAS Build → App Store / Play | `npx eas-cli build -p ios --profile production`<br>`npx eas-cli submit -p ios --latest` |
 
 빌드 번호는 `eas.json`의 `appVersionSource: remote` + `autoIncrement`로 EAS가 관리한다 — `app.json`에서 직접 올리지 않는다.
+
+화면 코드(JS)만 바뀐 수정은 스토어 심사 없이 OTA로 내보낸다:
+
+```bash
+cd mobile && npx eas-cli update --channel production --message "변경 내용"
+```
+
+`runtimeVersion`이 `fingerprint` 정책이라, 네이티브 구성(패키지·플러그인·스플래시 등)이 같은 빌드에만
+업데이트가 붙는다. 네이티브를 건드렸다면 `app.json`의 `version`을 올려 새로 빌드·제출해야 한다.
 
 ## 프로젝트 구조
 
@@ -421,6 +431,7 @@ APScheduler가 API 프로세스 안에서 함께 돈다 (`app/scheduler.py`, 시
 - [x] iOS 빌드 · App Store 제출
 - [x] iOS App Store 심사 통과
 - [x] App Store 출시 (2026-09-02)
+- [x] v1.0.1 출시 — 렌탈 분류·약정 기간·기기 종류. 이후 수정은 OTA로 배포
 - [ ] Android — Play Console 등록 및 출시
 - [ ] 소셜 로그인 (Google / Kakao) — 각 개발자 앱 자격증명 발급 후
 
