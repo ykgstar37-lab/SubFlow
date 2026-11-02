@@ -1169,6 +1169,8 @@ DEFAULT_SERVICES = {
     # 요금제는 넣지 않는다 — 렌탈료는 제품·약정 기간·카드 할인마다 달라
     # 카탈로그가 대표값을 정할 수 없다. 계약서의 월 렌탈료를 '요금제 직접 입력'으로
     # 넣고, 약정 종료일을 함께 적어 쓰는 항목들이다.
+    # 아정당 같은 가입 대행처는 따로 두지 않는다. 계약·결제·위약금은 렌탈 회사와
+    # 하므로, 검색 별칭으로만 걸어 실제 렌탈 회사를 고르게 한다(service_aliases).
     "Rental": [
         {
             "name": "코웨이",
@@ -1211,10 +1213,9 @@ DEFAULT_SERVICES = {
             "plans": [],
         },
         {
-            # 제조사가 아니라 여러 브랜드(LG·삼성·교원웰스·쿠쿠 등) 렌탈을 받아 주는 가입처다
-            "name": "아정당",
-            "description": "정수기·비데·공기청정기 등 여러 브랜드 가전 렌탈 가입처",
-            "website_url": "https://www.ajd.co.kr",
+            "name": "교원웰스",
+            "description": "정수기·비데·공기청정기·매트리스·웰스팜 렌탈",
+            "website_url": "https://www.kyowonwells.com",
             "is_popular": False,
             "plans": [],
         },
