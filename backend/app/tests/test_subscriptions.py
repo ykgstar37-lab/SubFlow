@@ -321,3 +321,51 @@ class TestUpcomingSubscriptions:
         service_names = [s["service_name"] for s in data]
         assert "Soon Service" in service_names
         assert "Far Service" not in service_names
+
+
+class TestCalendarEvents:
+    async def test_upcoming_events_cover_next_12_months(
+        self,
+        test_client: httpx.AsyncClient,
+        auth_headers: dict,
+    ):
+        """다음 결제일부터 한 달씩 12개월 앞까지 예정 결제가 나온다."""
+        today = date.today()
+        next_date = today + timedelta(days=2)
+        payload = _manual_subscription_payload()
+        payload["start_date"] = (today - timedelta(days=28)).isoformat()
+        payload["next_billing_date"] = next_date.isoformat()
+        sub = await _create_subscription(test_client, auth_headers, payload)
+
+        resp = await test_client.get(
+            "/api/v1/subscriptions/calendar-events", headers=auth_headers
+        )
+        assert resp.status_code == 200
+        upcoming = [
+            e["date"]
+            for e in resp.json()["events"]
+            if e["subscription_id"] == sub["id"] and not e["is_past"]
+        ]
+        assert upcoming[0] == next_date.isoformat()
+        assert len(upcoming) >= 12
+        assert all(d > today.isoformat() for d in upcoming)
+
+    async def test_non_recurring_shows_only_next_date(
+        self,
+        test_client: httpx.AsyncClient,
+        auth_headers: dict,
+    ):
+        today = date.today()
+        payload = _manual_subscription_payload()
+        payload["is_recurring"] = False
+        sub = await _create_subscription(test_client, auth_headers, payload)
+
+        resp = await test_client.get(
+            "/api/v1/subscriptions/calendar-events", headers=auth_headers
+        )
+        upcoming = [
+            e for e in resp.json()["events"]
+            if e["subscription_id"] == sub["id"] and not e["is_past"]
+        ]
+        assert len(upcoming) == 1
+        assert upcoming[0]["date"] == (today + timedelta(days=30)).isoformat()

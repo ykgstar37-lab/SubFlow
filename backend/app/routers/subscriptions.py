@@ -24,6 +24,7 @@ from app.schemas.subscription import (
     SubscriptionTimelineResponse,
     SubscriptionUpdateRequest,
 )
+from app.services.renewal_service import _add_months, _advance
 from app.services.subscription_service import SubscriptionService
 
 router = APIRouter()
@@ -119,8 +120,18 @@ async def get_calendar_events(
             else:
                 break
 
-        # Add next_billing_date as upcoming event (if it's in the future)
-        if sub.next_billing_date and sub.next_billing_date > today:
+        # 다음 결제일부터 주기만큼 밀며 12개월 앞까지 예정 결제를 만든다.
+        # 갱신 작업과 같은 _advance를 써서 실제로 잡힐 날짜와 맞춘다.
+        # 자동 갱신이 아니면 다음 결제일 한 번만 보인다.
+        upcoming = sub.next_billing_date
+        horizon = _add_months(today, 12)
+        repeats = sub.auto_renew and sub.is_recurring
+        while upcoming and upcoming <= horizon:
+            if upcoming <= today:
+                if not repeats:
+                    break
+                upcoming = _advance(upcoming, sub.billing_cycle)
+                continue
             events.append(
                 CalendarEvent(
                     subscription_id=str(sub.id),
@@ -130,11 +141,14 @@ async def get_calendar_events(
                     currency=sub.currency,
                     category_name=category_name,
                     category_color=category_color,
-                    date=sub.next_billing_date.isoformat(),
+                    date=upcoming.isoformat(),
                     is_past=False,
                     is_recurring=sub.is_recurring,
                 )
             )
+            if not repeats:
+                break
+            upcoming = _advance(upcoming, sub.billing_cycle)
 
     # Sort events by date
     events.sort(key=lambda e: e.date)
