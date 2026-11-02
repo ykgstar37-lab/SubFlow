@@ -1210,6 +1210,14 @@ DEFAULT_SERVICES = {
             "is_popular": False,
             "plans": [],
         },
+        {
+            # 제조사가 아니라 여러 브랜드(LG·삼성·교원웰스·쿠쿠 등) 렌탈을 받아 주는 가입처다
+            "name": "아정당",
+            "description": "정수기·비데·공기청정기 등 여러 브랜드 가전 렌탈 가입처",
+            "website_url": "https://www.ajd.co.kr",
+            "is_popular": False,
+            "plans": [],
+        },
     ],
     "Lifestyle": [
         {
