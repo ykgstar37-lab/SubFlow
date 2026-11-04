@@ -7,9 +7,9 @@
 웹 · iOS · Android를 하나의 API로 묶은 풀스택 개인 프로젝트
 
 [![Web](https://img.shields.io/badge/Web-app.mysubflow.app-4A90D9)](https://app.mysubflow.app)
+[![iOS](https://img.shields.io/badge/iOS-App_Store_출시-34C759)](https://apps.apple.com/kr/app/id6806811998)
 [![Landing](https://img.shields.io/badge/Landing-mysubflow.app-C4DCF2)](https://mysubflow.app)
 [![API](https://img.shields.io/badge/API-api.mysubflow.app-1A1A2E)](https://api.mysubflow.app/docs)
-[![iOS](https://img.shields.io/badge/iOS-App_Store_출시-34C759)](https://apps.apple.com/kr/app/id6806811998)
 ![기간](https://img.shields.io/badge/개발_기간-2026.03_~_2026.09-6B7280)
 ![License](https://img.shields.io/badge/License-All_rights_reserved-red)
 
