@@ -1773,7 +1773,7 @@ function sfDragTilt(el, o) {
     // 애플 continuity 스타일: 폰이 먼저 크게 가운데 → 스크롤하면 폰은 오른쪽 제자리로,
     // 노트북(이미 열린 상태)이 왼쪽에서 슬라이드 인 → 최종적으로 나란히.
     // 좌하단 텍스트는 스크롤을 시작하자마자(맨 앞 구간) 순차로 등장.
-    gsap.set('.laptop-screen', { rotateX: -84 });
+    gsap.set('.laptop-screen', { rotateX: -90 }); // 완전히 닫힌 상태에서 시작
     gsap.set('.laptop .shot', { filter: 'brightness(0.12) saturate(0.6)' });
     gsap.set('.laptop', { x: '-26vw', opacity: 0, scale: 0.95 });
     // 인트로에서 폰이 크게 보였다가 제자리로 줄어든다.
