@@ -143,64 +143,69 @@
      리드(알루미늄 테두리) → 검은 베젤 → 화면.
      리드 아래에 힌지 라인, 그 아래 앞쪽으로 얇아지는 베이스 슬랩. */
   .laptop-screen { position: relative; z-index: 3;
-    background:
-      linear-gradient(180deg, #55585f 0%, #3b3e44 4%, #2c2f34 26%, #24272b 60%, #1c1e22 88%, #141619 100%);
-    border-radius: 20px 20px 5px 5px; padding: 9px 9px 10px;
+    background: #07080a;
+    border-radius: 18px 18px 6px 6px; padding: 1.05% 1.05% 1.5%;
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.34),
-      inset 0 -1px 0 rgba(255,255,255,.1),
-      inset 1px 0 0 rgba(255,255,255,.16),
-      inset -1px 0 0 rgba(255,255,255,.16),
-      0 0 0 1px rgba(6,8,11,.7),
-      0 28px 48px -30px rgba(9,14,24,.62);
+      0 0 0 1.5px #c3c6cc,
+      0 0 0 2.5px #868a92,
+      inset 0 0 0 1px rgba(255,255,255,.07),
+      0 34px 60px -32px rgba(9,14,24,.6);
     transform-origin: 50% 100%; will-change: transform; }
-  /* 페이스타임 카메라 */
-  .laptop-screen::before { content: ""; position: absolute; top: 3.2px; left: 50%; transform: translateX(-50%);
-    width: 3.5px; height: 3.5px; border-radius: 50%;
-    background: radial-gradient(circle at 38% 32%, #4b5262, #05060a 70%); z-index: 6; }
+  /* 노치 + 페이스타임 카메라 */
+  .laptop-screen::before { content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 9%; height: 13px;
+    background: radial-gradient(circle at 50% 48%, #34405a 0 1.4px, #0b0e14 2.2px, #07080a 3.2px);
+    border-radius: 0 0 7px 7px; z-index: 6; }
 
   /* 비율은 실제 스크린샷(shots/web.png 1800x938)에 맞춘다 — 잘리거나 레터박스가 생기지 않도록 */
-  .laptop-bezel { position: relative; border-radius: 9px; overflow: hidden; aspect-ratio: 1800 / 938;
-    background: #000; box-shadow: inset 0 0 0 1.5px #05060a, 0 0 0 1px rgba(0,0,0,.55); }
-  .shot { width: 100%; height: 100%; display: block; object-fit: cover; }
-  /* 화면 글레어(유리 반사) */
-  .laptop-bezel::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 3;
-    background: linear-gradient(118deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 15%, rgba(255,255,255,0) 30%); mix-blend-mode: screen; }
+  .laptop-bezel { position: relative; border-radius: 7px; overflow: hidden; aspect-ratio: 1800 / 938;
+    background: #000; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+  .shot { width: 100%; height: 100%; display: block; object-fit: cover; -webkit-user-drag: none; user-select: none; }
+  /* 화면 글레어(유리 반사) — 드래그하면 --gx 가 움직여 빛이 화면을 훑는다 */
+  .laptop-bezel::after, .phone-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4;
+    background: linear-gradient(118deg,
+      rgba(255,255,255,0) calc(var(--gx, 12%) - 26%),
+      rgba(255,255,255,.17) var(--gx, 12%),
+      rgba(255,255,255,.03) calc(var(--gx, 12%) + 14%),
+      rgba(255,255,255,0) calc(var(--gx, 12%) + 30%));
+    mix-blend-mode: screen; }
 
-  /* 베이스: 리드보다 넓고, 위→아래로 밝은 알루미늄이 어두운 앞날로 떨어진다 */
+  /* 베이스: 실버 알루미늄. 위 모서리는 빛을 받고 아래로 갈수록 그늘진다 */
   .laptop-base { position: relative; z-index: 1;
-    /* 리드보다 52px 넓다. 컨테이너보다 넓은 요소는 margin:auto로 가운데 정렬이
+    /* 리드보다 64px 넓다. 컨테이너보다 넓은 요소는 margin:auto로 가운데 정렬이
        되지 않으므로(양쪽 0으로 계산돼 오른쪽으로만 넘침) 절반을 직접 당긴다. */
-    width: calc(100% + 52px); height: 17px; margin: -1px 0 0 -26px;
-    background:
-      linear-gradient(180deg,
-        #0b0d10 0%, #24272c 4%, #4a4e55 10%, #63676e 19%, #52565d 38%,
-        #42454b 58%, #33363b 76%, #232529 90%, #0f1013 100%);
-    border-radius: 2px 2px 10px 10px;
+    width: calc(100% + 64px); height: 15px; margin: -1px 0 0 -32px;
+    background: linear-gradient(180deg, #f4f5f7 0%, #dcdfe4 22%, #c3c7cd 55%, #a2a6ad 82%, #7d8189 100%);
+    border-radius: 3px 3px 14px 14px / 3px 3px 9px 9px;
     box-shadow:
-      inset 1px 0 0 rgba(255,255,255,.14), inset -1px 0 0 rgba(255,255,255,.14),
-      inset 0 -1px 0 rgba(255,255,255,.08),
-      0 22px 30px -14px rgba(9,14,24,.55); }
-  /* 앞쪽 여는 홈(finger groove) — 앞날 가운데가 살짝 파인 부분 */
-  .kb-well { display: block; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
-    width: 13%; height: 7px; z-index: 2;
-    background: linear-gradient(180deg, #3c3f45 0%, #26292d 40%, #131518 100%);
-    border-radius: 0 0 8px 8px;
-    box-shadow: inset 0 1px 1.5px rgba(0,0,0,.5); }
+      inset 0 1px 0 #ffffff,
+      inset 0 -2px 3px rgba(0,0,0,.16),
+      0 0 0 .5px rgba(60,64,72,.45),
+      0 24px 34px -16px rgba(9,14,24,.5); }
+  /* 힌지 그늘 + 앞쪽 여는 홈 */
+  .laptop-base::before { content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+    width: 76%; height: 3px; border-radius: 0 0 3px 3px;
+    background: linear-gradient(180deg, rgba(40,44,52,.55), rgba(40,44,52,0)); }
+  .kb-well { display: block; position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+    width: 12%; height: 5px; z-index: 2;
+    background: linear-gradient(180deg, #8e939b 0%, #b4b8bf 60%, #cfd2d7 100%);
+    border-radius: 0 0 7px 7px;
+    box-shadow: inset 0 1px 1.5px rgba(0,0,0,.35); }
   /* 바닥 접지 그림자 — 기기 전체를 지면에 앉힌다 */
-  .deck-pad { display: block; position: absolute; left: 50%; bottom: -21px; transform: translateX(-50%);
-    width: 84%; height: 21px; pointer-events: none;
-    background: radial-gradient(ellipse at 50% 40%, rgba(20,33,58,.34) 0%, rgba(20,33,58,.15) 44%, rgba(20,33,58,0) 74%);
+  .deck-pad { display: block; position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%);
+    width: 88%; height: 22px; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 40%, rgba(20,33,58,.36) 0%, rgba(20,33,58,.15) 44%, rgba(20,33,58,0) 74%);
     filter: blur(8px); }
 
   /* ── 아이폰 ──────────────────────────────────────────────
      얇은 티타늄 레일 + 균일한 검은 베젤 + 다이내믹 아일랜드 */
   .phone { position: absolute; right: clamp(-14px, 0.6vw, 12px); bottom: -14px; width: clamp(124px, 13.5vw, 176px);
     background:
-      linear-gradient(148deg, #9498a1 0%, #5a5e66 12%, #34383f 34%, #212429 55%, #171a1f 72%, #454951 92%, #6e727a 100%);
+      linear-gradient(148deg, #b4b7bd 0%, #6c7078 10%, #3b3f46 30%, #24272c 52%, #1b1d22 70%, #50545c 90%, #9a9ea6 100%);
     border-radius: 32px; padding: 3px;
     box-shadow:
-      inset 0 0 0 1px rgba(255,255,255,.42),
+      inset 0 0 0 1px rgba(255,255,255,.5),
+      inset 0 0 0 2px rgba(0,0,0,.55),
       0 0 0 1px rgba(10,12,16,.6),
       0 46px 64px -34px rgba(20,33,58,.62),
       0 12px 22px -14px rgba(20,33,58,.4);
@@ -220,9 +225,13 @@
   .phone-cam { position: absolute; top: 10.5px; left: 50%; margin-left: 4.2%;
     width: 5px; height: 5px; border-radius: 50%;
     background: radial-gradient(circle at 36% 30%, #2f3849, #05070c 68%); z-index: 7; }
-  /* 화면 글레어 */
-  .phone-screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4;
-    background: linear-gradient(125deg, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 14%, rgba(255,255,255,0) 29%); mix-blend-mode: screen; }
+  /* 화면 둘레의 얇은 검은 베젤 (스크린샷 가장자리를 살짝 덮는다) */
+  .phone-screen::before { content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    border: 3px solid #050608; border-radius: inherit; }
+  .m-hero .phone-screen::before { border-width: 5px; }
+  /* 드래그로 돌리는 무대 */
+  .stage-inner, .m-phone-float { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: pan-y; }
+  .stage-inner.grabbing, .m-phone-float.grabbing { cursor: grabbing; }
   /* 측면 버튼: 왼쪽 액션 버튼 + 볼륨 업/다운, 오른쪽 전원 */
   .phone-btn { position: absolute; z-index: 1;
     background: linear-gradient(180deg, #7b7f88, #3c4048 40%, #23262b);
@@ -1381,6 +1390,48 @@ var D = { bg:'#08090d', bg2:'#0e1016', surface:'#14171f', surface2:'#1a1e28',
           ink:'#f3f5f9', soft:'#a6b0c2', faint:'#6a7488',
           line:'rgba(255,255,255,0.09)', lineStrong:'rgba(255,255,255,0.16)' };
 
+// ── 드래그로 기기 돌리기 ─────────────────────────────────────────────────
+// 손(마우스)으로 끄는 만큼 무대가 3D로 돌아가고, 놓으면 탄성 있게 제자리로.
+// 세로 스크롤은 막지 않는다(touch-action: pan-y) — 가로로 끌 때만 돈다.
+// glare: 화면 반사광이 함께 훑고 지나갈 요소들, layers: [요소, 비율] 시차 이동
+function sfDragTilt(el, o) {
+  if (!el || !window.gsap) return;
+  o = o || {};
+  var maxY = o.maxY || 30, maxX = o.maxX || 12, k = o.k || 0.16;
+  var glare = o.glare || [], layers = o.layers || [];
+  var st = { ry: 0, rx: 0 }, sx = 0, sy = 0, down = false, id = null;
+  gsap.set(el, { transformPerspective: o.persp || 1600 });
+  function paint() {
+    gsap.set(el, { rotationY: st.ry, rotationX: st.rx });
+    var gx = (12 + st.ry * 2.2) + '%';
+    glare.forEach(function (g) { g.style.setProperty('--gx', gx); });
+    layers.forEach(function (l) { l[0].style.translate = (st.ry * l[1]) + 'px ' + (-st.rx * l[1] * 0.6) + 'px'; });
+  }
+  el.addEventListener('pointerdown', function (e) {
+    if (e.button > 0) return;
+    down = true; id = e.pointerId; sx = e.clientX - st.ry / k; sy = e.clientY + st.rx / (k * 0.6);
+    gsap.killTweensOf(st);
+    el.classList.add('grabbing');
+    if (e.pointerType === 'mouse') { e.preventDefault(); el.setPointerCapture(id); }
+  });
+  el.addEventListener('pointermove', function (e) {
+    if (!down || e.pointerId !== id) return;
+    var ry = gsap.utils.clamp(-maxY, maxY, (e.clientX - sx) * k);
+    var rx = gsap.utils.clamp(-maxX, maxX, -(e.clientY - sy) * k * 0.6);
+    if (e.pointerType !== 'mouse') rx = 0; // 터치는 세로를 스크롤에 양보
+    gsap.to(st, { ry: ry, rx: rx, duration: 0.35, ease: 'power3.out', overwrite: true, onUpdate: paint });
+  });
+  function up(e) {
+    if (!down || (e && e.pointerId !== id)) return;
+    down = false; el.classList.remove('grabbing');
+    gsap.to(st, { ry: 0, rx: 0, duration: 1.5, ease: 'elastic.out(1, 0.42)', overwrite: true, onUpdate: paint });
+  }
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('lostpointercapture', up);
+  el.addEventListener('dragstart', function (e) { e.preventDefault(); });
+}
+
 // ── 모바일 레이아웃 동작 ─────────────────────────────────────────────────
 // 상단 가운데 버튼 모달과 가로 슬라이드 인디케이터. 데스크톱에서는 마크업이
 // 숨겨져 있어 아무 일도 하지 않는다.
@@ -1456,6 +1507,8 @@ var D = { bg:'#08090d', bg2:'#0e1016', surface:'#14171f', surface2:'#1a1e28',
 
     // 미세한 부유. 스크럽이 폰의 transform을 통째로 쓰므로 래퍼에 건다.
     gsap.to(pfloat, { y: -9, duration: 2.8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    // 옆으로 끌면 폰이 돌아가고 반사광이 화면을 훑는다
+    sfDragTilt(pfloat, { persp: 900, maxY: 34, k: 0.22, glare: [phone.querySelector('.phone-screen')] });
 
     // 히어로를 지나가는 동안 폰이 뒤로 눕고 멀어진다.
     // (시작값은 타임라인 생성 시점의 현재 상태 = 변형 없음으로 잡힌다)
@@ -1713,23 +1766,26 @@ var D = { bg:'#08090d', bg2:'#0e1016', surface:'#14171f', surface2:'#1a1e28',
     // 애플 continuity 스타일: 폰이 먼저 크게 가운데 → 스크롤하면 폰은 오른쪽 제자리로,
     // 노트북(이미 열린 상태)이 왼쪽에서 슬라이드 인 → 최종적으로 나란히.
     // 좌하단 텍스트는 스크롤을 시작하자마자(맨 앞 구간) 순차로 등장.
-    gsap.set('.laptop-screen', { rotateX: 0 });
+    gsap.set('.laptop-screen', { rotateX: -84 });
+    gsap.set('.laptop .shot', { filter: 'brightness(0.12) saturate(0.6)' });
     gsap.set('.laptop', { x: '-26vw', opacity: 0, scale: 0.95 });
     // 인트로에서 폰이 크게 보였다가 제자리로 줄어든다.
     // 폰 기본 폭이 238→176px로 작아졌으므로 시작 크기를 유지하려면 스케일을 키워야 한다
     // (238*1.5/176 ≈ 2.03). yPercent도 같은 픽셀만큼 띄우려고 -10 → -15로 맞췄다.
-    gsap.set('#phone', { x: '-34vw', yPercent: -15, scale: 2.03, rotateY: 0, opacity: 1 });
+    gsap.set('#phone', { x: '-34vw', yPercent: -15, scale: 2.03, rotateY: 16, rotateZ: -5, opacity: 1 });
     gsap.timeline({ scrollTrigger: {
         trigger: '.hero', start: 'top top', end: '+=170%', scrub: 1,
         // 핀은 위쪽 섹션부터 갱신돼야 아래 핀의 위치가 정확하다 (hero 3 > specs 2 > about 1)
         pin: true, pinSpacing: true, anticipatePin: 1, refreshPriority: 3
       } })
       .to('.laptop', { x: '0vw', opacity: 1, scale: 1, ease: 'power2.out', duration: 1 }, 0.3)
+      .to('.laptop-screen', { rotateX: 0, ease: 'power2.inOut', duration: 0.9 }, 0.5)
+      .to('.laptop .shot', { filter: 'brightness(1) saturate(1)', ease: 'power1.inOut', duration: 0.4 }, 0.85)
       .to('.hero-copy .eyebrow', { y: 0, opacity: 1, ease: 'power2.out', duration: 0.32 }, 0.3)
       .to(heroChars, { yPercent: 0, opacity: 1, ease: 'power3.out', duration: 0.32 }, 0.3)
       .to('.hero-copy .cta-row', { y: 0, opacity: 1, ease: 'power2.out', duration: 0.32 }, 0.3)
       .to('.hero-copy .store-note', { opacity: 1, duration: 0.32 }, 0.3)
-      .to('#phone', { x: '0vw', yPercent: 0, scale: 1, rotateY: -13, ease: 'power2.out', duration: 1 }, 0.36);
+      .to('#phone', { x: '0vw', yPercent: 0, scale: 1, rotateY: -13, rotateZ: 0, ease: 'power2.out', duration: 1 }, 0.36);
   } else {
     gsap.set('.laptop-screen', { rotateX: 0 });
     gsap.set('#phone', { rotateY: -13, xPercent: 0, opacity: 1 });
@@ -1740,6 +1796,13 @@ var D = { bg:'#08090d', bg2:'#0e1016', surface:'#14171f', surface2:'#1a1e28',
       .to('.hero-copy .cta-row', { y: 0, opacity: 1, ease: 'power2.out', duration: 0.5 }, 0)
       .to('.hero-copy .store-note', { opacity: 1, duration: 0.5 }, 0);
   }
+
+  // 무대를 끌면 노트북·폰이 함께 돌고, 폰은 앞에 있는 만큼 더 크게 미끄러진다(시차)
+  sfDragTilt(document.getElementById('stage-inner'), {
+    persp: 1800, maxY: 26, maxX: 10, k: 0.12,
+    glare: [document.querySelector('.laptop-bezel'), document.querySelector('#phone .phone-screen')],
+    layers: [[document.getElementById('phone'), 1.4], [document.querySelector('.laptop'), -0.35]]
+  });
 
   // ===== 전역: 히어로 이후부터 페이지를 내려갈수록 흰색 → 검정으로 물듦 =====
   // 히어로 구간은 라이트(흰색) 유지, Specifications부터 Footer까지 다크로 전환.
