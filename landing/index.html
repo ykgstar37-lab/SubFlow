@@ -1772,7 +1772,7 @@ function sfDragTilt(el, o) {
     // 인트로에서 폰이 크게 보였다가 제자리로 줄어든다.
     // 폰 기본 폭이 238→176px로 작아졌으므로 시작 크기를 유지하려면 스케일을 키워야 한다
     // (238*1.5/176 ≈ 2.03). yPercent도 같은 픽셀만큼 띄우려고 -10 → -15로 맞췄다.
-    gsap.set('#phone', { x: '-34vw', yPercent: -15, scale: 2.03, rotateY: 16, rotateZ: -5, opacity: 1 });
+    gsap.set('#phone', { x: '-34vw', yPercent: -15, scale: 2.03, rotateY: 0, rotateZ: 0, opacity: 1 });
     gsap.timeline({ scrollTrigger: {
         trigger: '.hero', start: 'top top', end: '+=170%', scrub: 1,
         // 핀은 위쪽 섹션부터 갱신돼야 아래 핀의 위치가 정확하다 (hero 3 > specs 2 > about 1)
