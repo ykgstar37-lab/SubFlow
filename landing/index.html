@@ -146,11 +146,18 @@
     background: #07080a;
     border-radius: 18px 18px 6px 6px; padding: 1.05% 1.05% 1.5%;
     box-shadow:
-      0 0 0 1.5px #c3c6cc,
-      0 0 0 2.5px #868a92,
+      0 0 0 2px #d3d6db,
+      0 0 0 3.5px #9a9ea6,
+      0 0 0 4.5px #6e727a,
       inset 0 0 0 1px rgba(255,255,255,.07),
       0 34px 60px -32px rgba(9,14,24,.6);
-    transform-origin: 50% 100%; will-change: transform; }
+    transform-origin: 50% 100%; will-change: transform; transform-style: preserve-3d; }
+  /* 뚜껑 뒤판(알루미늄) — 화면보다 7px 뒤에 있어 뚜껑이 열리고 닫힐 때 두께가 보인다 */
+  .laptop-screen::after { content: ""; position: absolute; inset: -4.5px; z-index: -1; pointer-events: none;
+    border-radius: 21px 21px 9px 9px;
+    background: linear-gradient(180deg, #e3e5e9 0%, #c3c7cd 45%, #9ea2aa 100%);
+    box-shadow: 0 0 0 1px #7b7f87;
+    transform: translateZ(-7px); }
   /* 노치 + 페이스타임 카메라 */
   .laptop-screen::before { content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
     width: 9%; height: 13px;
@@ -205,7 +212,6 @@
     border-radius: 32px; padding: 3px;
     box-shadow:
       inset 0 0 0 1px rgba(255,255,255,.5),
-      inset 0 0 0 2px rgba(0,0,0,.55),
       0 0 0 1px rgba(10,12,16,.6),
       0 46px 64px -34px rgba(20,33,58,.62),
       0 12px 22px -14px rgba(20,33,58,.4);
@@ -227,8 +233,8 @@
     background: radial-gradient(circle at 36% 30%, #2f3849, #05070c 68%); z-index: 7; }
   /* 화면 둘레의 얇은 검은 베젤 (스크린샷 가장자리를 살짝 덮는다) */
   .phone-screen::before { content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none;
-    border: 3px solid #050608; border-radius: inherit; }
-  .m-hero .phone-screen::before { border-width: 5px; }
+    border: 1.5px solid #050608; border-radius: inherit; }
+  .m-hero .phone-screen::before { border-width: 2.5px; }
   /* 드래그로 돌리는 무대 */
   .stage-inner, .m-phone-float { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: pan-y; }
   .stage-inner.grabbing, .m-phone-float.grabbing { cursor: grabbing; }
