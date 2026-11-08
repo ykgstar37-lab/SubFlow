@@ -137,7 +137,8 @@
     .hero-copy { position: static; order: 1; padding: 0 var(--pad); max-width: none; left: auto; bottom: auto; }
     .stage { width: 100%; }
   }
-  .laptop { position: relative; width: min(880px, 95%); margin: 0 auto; perspective: 2300px; }
+  /* 원근을 멀리 둔다: 가까우면 닫힌 뚜껑의 앞 모서리가 확대돼 아래판보다 넓어 보인다 */
+  .laptop { position: relative; width: min(880px, 95%); margin: 0 auto; perspective: 6000px; }
 
   /* ── 맥북 ────────────────────────────────────────────────
      리드(알루미늄 테두리) → 검은 베젤 → 화면.
