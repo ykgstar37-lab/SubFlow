@@ -295,16 +295,18 @@ struct MediumView: View {
   var body: some View {
     let start = cal.date(byAdding: .day, value: -(cal.component(.weekday, from: m.today) - 1), to: m.today)!
     let week = (0..<7).map { cal.date(byAdding: .day, value: $0, to: start)! }
-    let next = m.upcomingDays(2)
+    let weekEnd = cal.date(byAdding: .day, value: 7, to: start)!
+    // 오늘부터 이번 주 토요일까지 가장 가까운 결제 하나
+    let next = m.upcomingDays(1).filter { $0 < weekEnd }
 
     // 위아래로 꽉 채운다: 주간 달력은 위에 붙이고, 결제 목록은 아래로 내린다
     VStack(spacing: 0) {
       HStack(spacing: 0) {
         ForEach(Array(week.enumerated()), id: \.offset) { i, d in
-          VStack(spacing: 3) {
-            Text(m.weekdays[i]).font(.system(size: 10, weight: .heavy)).foregroundColor(.appSub)
-            DayNumber(day: cal.component(.day, from: d), isToday: cal.isDate(d, inSameDayAs: m.today), size: 24)
-            LogoRow(events: m.events(on: d), size: 16, max: 2).frame(height: 16)
+          VStack(spacing: 4) {
+            Text(m.weekdays[i]).font(.system(size: 11, weight: .heavy)).foregroundColor(.appSub)
+            DayNumber(day: cal.component(.day, from: d), isToday: cal.isDate(d, inSameDayAs: m.today), size: 30)
+            LogoRow(events: m.events(on: d), size: 19, max: 2).frame(height: 19)
           }
           .frame(maxWidth: .infinity)
         }
@@ -314,7 +316,7 @@ struct MediumView: View {
       Spacer(minLength: 6)
       VStack(spacing: 7) {
         if next.isEmpty {
-          Text(m.ko ? "다가오는 결제 없음" : "No upcoming payments")
+          Text(m.ko ? "이번 주 남은 결제 없음" : "No more payments this week")
             .font(.system(size: 11.5, weight: .semibold)).foregroundColor(.appSub)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
