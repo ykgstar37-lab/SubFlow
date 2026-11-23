@@ -2,7 +2,7 @@
   "expo": {
     "name": "SubFlow",
     "slug": "subflow",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -22,6 +22,12 @@
           "NSAllowsArbitraryLoads": false,
           "NSAllowsLocalNetworking": true
         }
+      },
+      "appleTeamId": "965DFL94TQ",
+      "entitlements": {
+        "com.apple.security.application-groups": [
+          "group.app.mysubflow"
+        ]
       }
     },
     "android": {
@@ -57,7 +63,8 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "@bacons/apple-targets"
     ],
     "extra": {
       "eas": {

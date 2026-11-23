@@ -113,7 +113,7 @@ const LOGOS: Record<string, ImageSourcePropType> = {
 
 // 바탕색까지 브랜드인 로고(색 네모 위에 흰 그림). 바탕을 빼면 그림이 안 보이므로
 // 회색 칸 안에 작게 넣지 않고 칸을 꽉 채워 그린다. 나머지 로고는 바탕이 투명하다.
-const FULL_BLEED = new Set([
+export const FULL_BLEED = new Set([
   'Disney+',
   'Wavve',
   'Tving',
@@ -149,7 +149,7 @@ const FULL_BLEED = new Set([
 ]);
 
 // ── 브랜드 배경색 (fallback용) ──
-const BRAND_BG: Record<string, { bg: string; text: string }> = {
+export const BRAND_BG: Record<string, { bg: string; text: string }> = {
   'Netflix': { bg: '#E50914', text: '#FFF' },
   'Spotify': { bg: '#1DB954', text: '#FFF' },
   'YouTube Premium': { bg: '#FF0000', text: '#FFF' },
