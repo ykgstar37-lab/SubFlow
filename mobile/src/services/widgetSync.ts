@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import api from './api';
 import { formatPrice } from '../constants/currency';
 import { LOGO_KEYS } from '../constants/logoKeys';
@@ -25,13 +26,16 @@ function native() {
   if (Platform.OS !== 'ios') return false;
   if (storage) return true;
   try {
-    // 위젯 네이티브 모듈이 없는 빌드(Expo Go, 위젯 이전 버전)에서는 조용히 건너뛴다
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    // 네이티브 모듈이 안 붙어 있으면 라이브러리가 아무것도 안 하는 가짜로 바꿔 끼우므로 먼저 확인한다
-    if (!(globalThis as any).expo?.modules?.ExtensionStorage) return false;
-    const { ExtensionStorage } = require('@bacons/apple-targets');
-    storage = new ExtensionStorage(APP_GROUP);
-    reload = () => ExtensionStorage.reloadWidget();
+    // @bacons/apple-targets의 JS는 불러오는 순간 전역 expo.modules만 한 번 보고, 거기 없으면
+    // 아무것도 안 하는 가짜로 굳어 버린다(빌드 18·19에서 위젯이 비어 있던 이유).
+    // 그래서 네이티브 모듈을 Expo 표준 방식으로 직접 찾는다. 위젯 이전 빌드나 Expo Go에서는 null.
+    const mod = requireOptionalNativeModule<{
+      setString: (key: string, value: string, group: string) => void;
+      reloadWidget: (kind?: string | null) => void;
+    }>('ExtensionStorage');
+    if (!mod) return false;
+    storage = { set: (k, v) => mod.setString(k, v, APP_GROUP) };
+    reload = () => mod.reloadWidget(null);
     return true;
   } catch {
     return false;
