@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="brand/subflow-preview.gif" alt="SubFlow 미리보기 — 달력 발판을 건너며 결제일을 밟는 도트 애니메이션" width="100%">
+
 <img src="brand/subflow-logo-point.png" alt="SubFlow" width="260">
 
 **흩어진 구독료를 한 곳에 모아, 매달 얼마가 빠져나가는지 보여주는 구독 관리 서비스**
