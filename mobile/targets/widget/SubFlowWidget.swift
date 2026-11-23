@@ -123,12 +123,8 @@ struct Model {
 
   func whenLabel(_ d: Date) -> String {
     let off = cal.dateComponents([.day], from: today, to: d).day ?? 0
-    if off == 0 { return ko ? "오늘" : "Today" }
-    if off == 1 { return ko ? "내일" : "Tmrw" }
-    let weekStart = cal.date(byAdding: .day, value: -(cal.component(.weekday, from: today) - 1), to: today)!
-    let weekEnd = cal.date(byAdding: .day, value: 7, to: weekStart)!
-    if d < weekEnd { return weekdays[cal.component(.weekday, from: d) - 1] }
-    return "\(cal.component(.month, from: d))/\(cal.component(.day, from: d))"
+    // 날짜 대신 남은 날수: 오늘 / D-1 / D-7
+    return off == 0 ? (ko ? "오늘" : "Today") : "D-\(off)"
   }
 
   func dday(_ d: Date) -> Int { cal.dateComponents([.day], from: today, to: d).day ?? 0 }
@@ -301,19 +297,22 @@ struct MediumView: View {
     let week = (0..<7).map { cal.date(byAdding: .day, value: $0, to: start)! }
     let next = m.upcomingDays(2)
 
-    VStack(spacing: 6) {
+    // 위아래로 꽉 채운다: 주간 달력은 위에 붙이고, 결제 목록은 아래로 내린다
+    VStack(spacing: 0) {
       HStack(spacing: 0) {
         ForEach(Array(week.enumerated()), id: \.offset) { i, d in
-          VStack(spacing: 2) {
-            Text(m.weekdays[i]).font(.system(size: 9.5, weight: .heavy)).foregroundColor(.appSub)
-            DayNumber(day: cal.component(.day, from: d), isToday: cal.isDate(d, inSameDayAs: m.today), size: 21)
-            LogoRow(events: m.events(on: d), size: 14, max: 2).frame(height: 14)
+          VStack(spacing: 3) {
+            Text(m.weekdays[i]).font(.system(size: 10, weight: .heavy)).foregroundColor(.appSub)
+            DayNumber(day: cal.component(.day, from: d), isToday: cal.isDate(d, inSameDayAs: m.today), size: 24)
+            LogoRow(events: m.events(on: d), size: 16, max: 2).frame(height: 16)
           }
           .frame(maxWidth: .infinity)
         }
       }
+      Spacer(minLength: 6)
       Rectangle().fill(Color.appLine).frame(height: 1)
-      VStack(spacing: 4) {
+      Spacer(minLength: 6)
+      VStack(spacing: 7) {
         if next.isEmpty {
           Text(m.ko ? "다가오는 결제 없음" : "No upcoming payments")
             .font(.system(size: 11.5, weight: .semibold)).foregroundColor(.appSub)
@@ -324,23 +323,27 @@ struct MediumView: View {
           let off = m.dday(d)
           HStack(spacing: 6) {
             Text(m.whenLabel(d))
-              .font(.system(size: 11, weight: .heavy))
+              .font(.system(size: 12, weight: .heavy))
+              .monospacedDigit()
               .foregroundColor(off <= 1 ? .appPrimary : .appSub)
-              .frame(width: 30, alignment: .leading)
-            LogoRow(events: evs, size: 15, max: 2)
+              .lineLimit(1)
+              .minimumScaleFactor(0.8)
+              .frame(width: 38, alignment: .leading)
+            LogoRow(events: evs, size: 17, max: 2)
             Text(evs[0].n + (evs.count > 1 ? (m.ko ? " 외 \(evs.count - 1)건" : " +\(evs.count - 1)") : ""))
-              .font(.system(size: 11.5, weight: .bold))
+              .font(.system(size: 12.5, weight: .bold))
               .foregroundColor(.appText)
               .lineLimit(1)
             Spacer(minLength: 4)
             Text(m.totals[key(d)] ?? "")
-              .font(.system(size: 11.5, weight: .bold))
+              .font(.system(size: 12.5, weight: .bold))
               .monospacedDigit()
               .foregroundColor(.appText)
           }
         }
       }
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
 
