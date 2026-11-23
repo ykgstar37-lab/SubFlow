@@ -111,6 +111,43 @@ const LOGOS: Record<string, ImageSourcePropType> = {
   'VSCO': require('../../assets/logos/vsco.png'),
 };
 
+// 바탕색까지 브랜드인 로고(색 네모 위에 흰 그림). 바탕을 빼면 그림이 안 보이므로
+// 회색 칸 안에 작게 넣지 않고 칸을 꽉 채워 그린다. 나머지 로고는 바탕이 투명하다.
+const FULL_BLEED = new Set([
+  'Disney+',
+  'Wavve',
+  'Tving',
+  'Amazon Prime Video',
+  'FLO',
+  'VIBE',
+  'Bugs',
+  'Claude Pro',
+  'Perplexity Pro',
+  'Apple Developer Program',
+  'AWS',
+  'Dropbox',
+  'Zoom',
+  'Canva Pro',
+  'Todoist',
+  '인프런',
+  '리디 셀렉트',
+  '예스24 크레마클럽',
+  'Kindle Unlimited',
+  'Audible',
+  'Calm',
+  'Strava',
+  'The Economist',
+  '톡클라우드',
+  'ExpressVPN',
+  '네이버 플러스 멤버십',
+  '카카오톡 이모티콘 플러스',
+  'Amazon Prime',
+  '코웨이',
+  'LG전자 구독',
+  'KineMaster Premium',
+  'Picsart Pro',
+]);
+
 // ── 브랜드 배경색 (fallback용) ──
 const BRAND_BG: Record<string, { bg: string; text: string }> = {
   'Netflix': { bg: '#E50914', text: '#FFF' },
@@ -140,12 +177,12 @@ interface ServiceLogoProps {
 export function ServiceLogo({ name, size = 44 }: ServiceLogoProps) {
   const logo = LOGOS[name];
   const borderRadius = size * 0.26;
-  const imgSize = size * 0.75;
+  const imgSize = FULL_BLEED.has(name) ? size : size * 0.75;
 
   if (logo) {
     return (
       <View style={[styles.container, { width: size, height: size, borderRadius }]}>
-        <Image source={logo} style={{ width: imgSize, height: imgSize }} resizeMode="contain" />
+        <Image source={logo} style={{ width: imgSize, height: imgSize }} resizeMode={FULL_BLEED.has(name) ? 'cover' : 'contain'} />
       </View>
     );
   }
