@@ -1,12 +1,8 @@
 <div align="center">
 
-<img src="brand/subflow-preview.gif" alt="SubFlow 미리보기 — 달력 발판을 건너며 결제일을 밟는 도트 애니메이션" width="100%">
-
 <img src="brand/subflow-logo-point.png" alt="SubFlow" width="260">
 
-**흩어진 구독료를 한 곳에 모아, 매달 얼마가 빠져나가는지 보여주는 구독 관리 서비스**
 
-웹 · iOS · Android를 하나의 API로 묶은 풀스택 개인 프로젝트
 
 [![Web](https://img.shields.io/badge/Web-app.mysubflow.app-4A90D9)](https://app.mysubflow.app)
 [![iOS](https://img.shields.io/badge/iOS-App_Store_출시-34C759)](https://apps.apple.com/kr/app/id6806811998)
@@ -15,7 +11,15 @@
 ![기간](https://img.shields.io/badge/개발_기간-2026.03_~_2026.09-6B7280)
 ![License](https://img.shields.io/badge/License-All_rights_reserved-red)
 
-<img src="landing/shots/web.png" alt="웹 대시보드" width="720">
+
+<img src="brand/subflow-preview.gif" alt="SubFlow 미리보기 — 달력 발판을 건너며 결제일을 밟는 도트 애니메이션" width="100%">
+
+
+
+**흩어진 구독료를 한 곳에 모아, 매달 얼마가 빠져나가는지 보여주는 구독 관리 서비스**
+
+웹 · iOS · Android를 하나의 API로 묶은 풀스택 개인 프로젝트
+
 
 </div>
 
