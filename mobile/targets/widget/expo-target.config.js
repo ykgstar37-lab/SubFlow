@@ -8,6 +8,8 @@ const images = {};
 for (const file of fs.readdirSync(logoDir)) {
   if (file.endsWith(".png")) images[`logo_${file.replace(/\.png$/, "")}`] = `../../assets/logos/${file}`;
 }
+// SubFlow 공식 로고 (펜 글씨)
+images.brand_logo = "../../assets/brand/subflow-logo-pen.png";
 
 /** @type {import('@bacons/apple-targets/app.plugin').ConfigFunction} */
 module.exports = (config) => ({

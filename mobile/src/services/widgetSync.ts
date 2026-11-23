@@ -27,6 +27,8 @@ function native() {
   try {
     // 위젯 네이티브 모듈이 없는 빌드(Expo Go, 위젯 이전 버전)에서는 조용히 건너뛴다
     // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // 네이티브 모듈이 안 붙어 있으면 라이브러리가 아무것도 안 하는 가짜로 바꿔 끼우므로 먼저 확인한다
+    if (!(globalThis as any).expo?.modules?.ExtensionStorage) return false;
     const { ExtensionStorage } = require('@bacons/apple-targets');
     storage = new ExtensionStorage(APP_GROUP);
     reload = () => ExtensionStorage.reloadWidget();
@@ -41,8 +43,19 @@ const ymd = (d: Date) =>
 
 let running: Promise<void> | null = null;
 
+/** 마지막으로 위젯에 넘긴 결과. 설정 맨 아래에 작게 보여서 위젯이 비어 있을 때 어디서 막혔는지 본다 */
+let status = '';
+const stamp = () => {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+export const widgetStatus = () => status;
+
 export function syncWidget(): Promise<void> {
-  if (!native()) return Promise.resolve();
+  if (!native()) {
+    if (Platform.OS === 'ios') status = 'module-missing';
+    return Promise.resolve();
+  }
   running = running ?? doSync().finally(() => { running = null; });
   return running;
 }
@@ -100,7 +113,9 @@ async function doSync() {
     const lang = useSettingsStore.getState().language ?? 'ko';
     storage!.set(KEY, JSON.stringify({ events, totals, lang }));
     reload?.();
-  } catch {
+    status = `ok ${events.length} ${stamp()}`;
+  } catch (e: any) {
     // 위젯은 다음에 다시 맞춘다. 앱 사용을 막지 않는다
+    status = `err ${e?.response?.status ?? e?.message ?? e} ${stamp()}`;
   }
 }

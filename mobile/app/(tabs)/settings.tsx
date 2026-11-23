@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../src/store/authStore';
 import { useSettingsStore } from '../../src/store/settingsStore';
 import { useTranslation } from '../../src/hooks/useTranslation';
+import { widgetStatus } from '../../src/services/widgetSync';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius, TabBarSpace } from '../../src/constants/theme';
 
 interface SettingRowProps {
@@ -522,7 +523,10 @@ export default function SettingsScreen() {
             <Text style={styles.deleteText}>{t('settings.deleteAccount')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.version}>SubFlow v1.0.0{BUNDLE_LABEL}</Text>
+          <Text style={styles.version}>
+            SubFlow v{Constants.expoConfig?.version ?? ''}{BUNDLE_LABEL}
+            {Platform.OS === 'ios' && widgetStatus() ? ` · W ${widgetStatus()}` : ''}
+          </Text>
           <View style={{ height: 100 }} />
         </ScrollView>
       </SafeAreaView>

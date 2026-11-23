@@ -54,6 +54,22 @@ private func loadPayload() -> WPayload? {
   return try? JSONDecoder().decode(WPayload.self, from: data)
 }
 
+/// 위젯이 비어 있을 때 어디서 막혔는지 작게 보여 준다 (앱 그룹 / 데이터 / 해석)
+private func diagnose() -> String {
+  guard let defaults = UserDefaults(suiteName: appGroup) else { return "E1 group" }
+  if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) == nil {
+    return "E2 entitlement"
+  }
+  guard let obj = defaults.object(forKey: storageKey) else { return "E3 empty" }
+  guard let raw = obj as? String, let data = raw.data(using: .utf8) else { return "E4 type" }
+  do {
+    _ = try JSONDecoder().decode(WPayload.self, from: data)
+    return "ok"
+  } catch {
+    return "E5 \(String(describing: error).prefix(60))"
+  }
+}
+
 private var cal: Calendar = {
   var c = Calendar(identifier: .gregorian)
   c.timeZone = .current
@@ -364,17 +380,35 @@ struct SmallView: View {
   }
 }
 
+/// SubFlow 공식 로고 (펜 글씨). 이미지가 없으면 글자로
+struct BrandLogo: View {
+  let height: CGFloat
+  var body: some View {
+    if let img = UIImage(named: "brand_logo") {
+      Image(uiImage: img).resizable().scaledToFit().frame(height: height)
+    } else {
+      Text("SubFlow").font(.system(size: height * 0.55, weight: .heavy)).foregroundColor(.appPrimary)
+    }
+  }
+}
+
 struct NoDataView: View {
   let m: Model
   var body: some View {
-    VStack(spacing: 6) {
-      Text("SubFlow").font(.system(size: 13, weight: .heavy)).foregroundColor(.appPrimary)
+    VStack(spacing: 8) {
+      BrandLogo(height: 24)
       Text(m.hasData
            ? (m.ko ? "다가오는 결제가 없어요" : "No upcoming payments")
            : (m.ko ? "앱을 한 번 열면 결제일이 여기 보여요" : "Open the app once to see your payments"))
         .font(.system(size: 12, weight: .semibold))
         .foregroundColor(.appSub)
         .multilineTextAlignment(.center)
+      if !m.hasData {
+        Text(diagnose())
+          .font(.system(size: 8, weight: .regular, design: .monospaced))
+          .foregroundColor(.appSub.opacity(0.7))
+          .lineLimit(2)
+      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
