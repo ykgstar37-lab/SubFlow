@@ -26,16 +26,21 @@ function native() {
   if (Platform.OS !== 'ios') return false;
   if (storage) return true;
   try {
-    // @bacons/apple-targets의 JS는 불러오는 순간 전역 expo.modules만 한 번 보고, 거기 없으면
-    // 아무것도 안 하는 가짜로 굳어 버린다(빌드 18·19에서 위젯이 비어 있던 이유).
-    // 그래서 네이티브 모듈을 Expo 표준 방식으로 직접 찾는다. 위젯 이전 빌드나 Expo Go에서는 null.
+    // 앱 안의 로컬 모듈(modules/widget-storage). @bacons/apple-targets의 ExtensionStorage는
+    // 최소 iOS 16.4라 앱(15.1)에 자동 연결되지 않아 빌드 18·19에서 위젯이 비어 있었다.
+    // 위젯 이전 빌드나 Expo Go에서는 null이라 조용히 건너뛴다.
     const mod = requireOptionalNativeModule<{
-      setString: (key: string, value: string, group: string) => void;
-      reloadWidget: (kind?: string | null) => void;
-    }>('ExtensionStorage');
+      setString: (key: string, value: string, group: string) => boolean;
+      hasGroup: (group: string) => boolean;
+      reloadWidgets: () => void;
+    }>('WidgetStorage');
     if (!mod) return false;
-    storage = { set: (k, v) => mod.setString(k, v, APP_GROUP) };
-    reload = () => mod.reloadWidget(null);
+    if (!mod.hasGroup(APP_GROUP)) {
+      status = 'no-app-group';
+      return false;
+    }
+    storage = { set: (k, v) => { mod.setString(k, v, APP_GROUP); } };
+    reload = () => mod.reloadWidgets();
     return true;
   } catch {
     return false;
@@ -57,7 +62,7 @@ export const widgetStatus = () => status;
 
 export function syncWidget(): Promise<void> {
   if (!native()) {
-    if (Platform.OS === 'ios') status = 'module-missing';
+    if (Platform.OS === 'ios' && status !== 'no-app-group') status = 'module-missing';
     return Promise.resolve();
   }
   running = running ?? doSync().finally(() => { running = null; });
