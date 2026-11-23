@@ -1,12 +1,14 @@
-import type { LoginRequest, RegisterRequest, TokenPair, User } from "../types/auth";
+import type { TokenPair, User } from "../types/auth";
 import apiClient from "./client";
 
 export const authApi = {
-  register: (data: RegisterRequest) =>
-    apiClient.post<User>("/auth/register", data).then((r) => r.data),
+  /** 6자리 코드를 메일로 보낸다. 가입 여부와 상관없이 같은 답을 준다. */
+  sendEmailCode: (email: string) =>
+    apiClient.post<{ message: string }>("/auth/email/code", { email }).then((r) => r.data),
 
-  login: (data: LoginRequest) =>
-    apiClient.post<TokenPair>("/auth/login", data).then((r) => r.data),
+  /** 이메일 코드로 들어간다. 처음 보는 주소면 계정이 만들어진다. */
+  loginWithCode: (email: string, code: string) =>
+    apiClient.post<TokenPair>("/auth/email/login", { email, code }).then((r) => r.data),
 
   refresh: (refreshToken: string) =>
     apiClient
@@ -18,12 +20,6 @@ export const authApi = {
   updateMe: (data: Partial<User>) =>
     apiClient.put<User>("/auth/me", data).then((r) => r.data),
 
-  /** 재설정 메일 요청. 가입되지 않은 주소여도 성공으로 답한다(사용자 열거 방지). */
-  forgotPassword: (email: string) =>
-    apiClient
-      .post<{ message: string }>("/auth/forgot-password", { email })
-      .then((r) => r.data),
-
   verifyEmail: (token: string) =>
     apiClient
       .post<{ message: string }>("/auth/verify-email", { token })
@@ -34,17 +30,9 @@ export const authApi = {
       .post<{ message: string }>("/auth/verify-email/resend")
       .then((r) => r.data),
 
-  /** 계정과 모든 데이터를 삭제한다 (복구 불가). 본인 확인을 위해 비밀번호를 함께 보낸다. */
-  deleteAccount: (password: string) =>
+  /** 계정과 모든 데이터를 삭제한다 (복구 불가). 비밀번호가 없으니 화면에서 확인받고 confirm을 보낸다. */
+  deleteAccount: () =>
     apiClient
-      .delete<{ message: string }>("/auth/me", { data: { password } })
-      .then((r) => r.data),
-
-  resetPassword: (token: string, newPassword: string) =>
-    apiClient
-      .post<{ message: string }>("/auth/reset-password", {
-        token,
-        new_password: newPassword,
-      })
+      .delete<{ message: string }>("/auth/me", { data: { confirm: true } })
       .then((r) => r.data),
 };

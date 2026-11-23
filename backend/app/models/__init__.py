@@ -9,6 +9,7 @@ from app.models.notification_setting import NotificationSetting
 from app.models.notification import Notification, NotificationType
 from app.models.news_cache import NewsCache
 from app.models.plan_price_history import PlanPriceHistory
+from app.models.email_code import EmailCode
 
 __all__ = [
     "User",
@@ -26,4 +27,5 @@ __all__ = [
     "NotificationType",
     "NewsCache",
     "PlanPriceHistory",
+    "EmailCode",
 ]

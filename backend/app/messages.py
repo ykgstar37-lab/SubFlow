@@ -217,6 +217,33 @@ def verify_text(username: str, link: str, expires_at: datetime, sent_at: datetim
     )
 
 
+CODE_SUBJECT = "확인 코드"
+CODE_HEADING = "SubFlow 확인 코드"
+CODE_FOOTER = "본인이 요청한 게 아니라면 이 메일을 무시하세요. 코드를 넣지 않으면 아무 일도 일어나지 않습니다."
+
+
+def code_subject(code: str) -> str:
+    # 제목에 코드를 넣어 알림 미리보기만 보고도 바로 입력할 수 있게 한다
+    return f"{SUBJECT_PREFIX} {CODE_SUBJECT} {code}"
+
+
+def code_item_body(expires_at: datetime) -> str:
+    return f"앱이나 웹의 입력 칸에 넣어 주세요. {mail_time(expires_at)}까지 쓸 수 있습니다."
+
+
+def code_footer(sent_at: datetime) -> str:
+    return f"{CODE_FOOTER} — {mail_time(sent_at)} 발송"
+
+
+def code_text(code: str, expires_at: datetime, sent_at: datetime) -> str:
+    return (
+        f"SubFlow 확인 코드: {code}\n\n"
+        f"앱이나 웹의 입력 칸에 넣어 주세요. {mail_time(expires_at)}까지 쓸 수 있습니다.\n"
+        f"본인이 요청한 게 아니라면 이 메일을 무시하세요.\n\n"
+        f"{mail_time(sent_at)} 발송\n"
+    )
+
+
 RESET_SUBJECT = "비밀번호 재설정"
 RESET_HEADING = "비밀번호 재설정"
 RESET_CTA = "비밀번호 재설정하기"

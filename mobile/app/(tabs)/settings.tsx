@@ -9,7 +9,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { Card } from '../../src/components/Card';
-import { GradientButton } from '../../src/components/GradientButton';
 import { authAPI, feedbackAPI } from '../../src/services/api';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
@@ -79,7 +78,7 @@ const BUNDLE_LABEL = (() => {
 
 
 export default function SettingsScreen() {
-  const { user, logout, setUser } = useAuthStore();
+  const { user, setUser, linkEmail, startFresh } = useAuthStore();
   const {
     language, setLanguage,
     pushEnabled, setPushEnabled,
@@ -108,8 +107,18 @@ export default function SettingsScreen() {
   const [budgetInput, setBudgetInput] = useState('');
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
+
+  // ── 이메일 연결 ──
+  // 로그인이 없으니 이메일은 원하는 사람만 붙인다. 붙이면 알림 메일을 받고 웹에서도 같은 구독을 본다.
+  // 예전 가입자는 가입한 이메일을 넣으면 원래 계정으로 돌아간다(서버가 합쳐 준다).
+  const [emailModalVisible, setEmailModalVisible] = useState(false);
+  const [emailStep, setEmailStep] = useState<'email' | 'code'>('email');
+  const [emailInput, setEmailInput] = useState('');
+  const [codeInput, setCodeInput] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const emailLinked = !!user?.email && user?.email_verified !== false;
 
   // ── 오류 신고 ──
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
@@ -168,24 +177,60 @@ export default function SettingsScreen() {
     }
   };
 
-  // 이메일 미인증이면 알림 메일이 아예 나가지 않는다(delivery_service가 검사).
-  // 앱에서 인증할 길이 없어 앱만 쓰는 사람은 이메일 알림을 영영 못 받았다.
-  const [resending, setResending] = useState(false);
+  const openEmailModal = () => {
+    setEmailInput(user?.email ?? '');
+    setCodeInput('');
+    setEmailError('');
+    setEmailStep('email');
+    setEmailModalVisible(true);
+  };
 
-  const handleResendVerification = async () => {
-    setResending(true);
+  const handleSendCode = async () => {
+    const email = emailInput.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      setEmailError(language === 'ko' ? '이메일 주소를 확인해 주세요' : 'Check the email address');
+      return;
+    }
+    setEmailBusy(true);
+    setEmailError('');
     try {
-      await authAPI.resendVerification();
-      Alert.alert(
-        language === 'ko' ? '인증 메일을 보냈어요' : 'Verification email sent',
-        language === 'ko'
-          ? '메일함에서 링크를 눌러주세요. 인증해야 알림 메일이 발송됩니다.'
-          : 'Open the link in your inbox. Email notifications need a verified address.',
-      );
-    } catch {
-      Alert.alert(language === 'ko' ? '잠시 후 다시 시도해주세요' : 'Please try again in a moment');
+      await authAPI.sendEmailCode(email);
+      setCodeInput('');
+      setEmailStep('code');
+    } catch (e: any) {
+      setEmailError(e?.response?.status === 429
+        ? (language === 'ko' ? '잠시 후 다시 보내 주세요' : 'Please wait a moment and try again')
+        : (language === 'ko' ? '메일을 보내지 못했어요. 잠시 후 다시 시도해 주세요' : 'Could not send the email. Try again shortly'));
     } finally {
-      setResending(false);
+      setEmailBusy(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (codeInput.length !== 6) return;
+    setEmailBusy(true);
+    setEmailError('');
+    try {
+      const { merged } = await linkEmail(emailInput.trim(), codeInput);
+      setEmailModalVisible(false);
+      syncFromServer();
+      Alert.alert(
+        language === 'ko' ? '이메일을 연결했어요' : 'Email connected',
+        merged
+          ? (language === 'ko'
+              ? '이 이메일로 쓰던 계정을 찾았어요. 예전 구독과 이 폰에서 넣은 구독을 합쳤습니다.'
+              : 'We found your existing account and merged your subscriptions.')
+          : (language === 'ko'
+              ? '이제 알림 메일을 받고, 웹(app.mysubflow.app)에서도 같은 이메일로 들어갈 수 있어요.'
+              : 'You can now get email alerts and sign in on the web with this email.'),
+      );
+    } catch (e: any) {
+      const status = e?.response?.status;
+      setEmailError(status === 409
+        ? (language === 'ko' ? '이 이메일은 이미 다른 계정에서 쓰고 있어요' : 'This email belongs to another account')
+        : (language === 'ko' ? '코드가 맞지 않거나 만료됐어요. 다시 확인해 주세요' : 'Wrong or expired code'));
+    } finally {
+      setEmailBusy(false);
     }
   };
 
@@ -220,34 +265,19 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(t('settings.logout'), '', [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('settings.logout'),
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login');
-        },
-      },
-    ]);
-  };
-
   const openDeleteModal = () => {
-    setDeletePassword('');
     setDeleteModalVisible(true);
   };
 
   const handleDeleteAccount = async () => {
-    if (!deletePassword || deleting) return;
+    if (deleting) return;
     setDeleting(true);
     try {
-      await authAPI.deleteAccount(deletePassword);
+      await authAPI.deleteAccount();
       setDeleteModalVisible(false);
-      // 서버에서 이미 지워졌으니 로컬 토큰만 정리하고 로그인 화면으로
-      await logout();
-      router.replace('/(auth)/login');
+      // 서버에서 이미 지워졌다. 빈 새 계정으로 다시 시작한다
+      await startFresh();
+      router.replace('/(tabs)');
       Alert.alert(t('settings.deleteDone'));
     } catch {
       Alert.alert(t('settings.deleteFailed'));
@@ -262,7 +292,11 @@ export default function SettingsScreen() {
 
   // 저장은 store가 맡는다. 화면은 값만 넘긴다.
   const syncPush = (v: boolean) => setPushEnabled(v);
-  const syncEmail = (v: boolean) => setEmailEnabled(v);
+  const syncEmail = (v: boolean) => {
+    // 이메일을 붙이지 않았으면 보낼 곳이 없다. 켜려는 순간 연결 창을 연다
+    if (v && !emailLinked) { openEmailModal(); return; }
+    setEmailEnabled(v);
+  };
 
   const openBudgetModal = () => {
     setBudgetInput(monthlyBudget ? monthlyBudget.toLocaleString() : '');
@@ -341,7 +375,9 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{user?.username ?? 'User'}</Text>
-                <Text style={styles.profileEmail}>{user?.email ?? 'user@example.com'}</Text>
+                <Text style={styles.profileEmail}>
+                  {emailLinked ? user?.email : (language === 'ko' ? '이메일 연결 안 됨' : 'No email connected')}
+                </Text>
               </View>
               {/* 웹은 이름을 고칠 수 있는데 앱은 지금 값을 읽어 주기만 했다. */}
               <TouchableOpacity
@@ -390,25 +426,20 @@ export default function SettingsScreen() {
                   trackColor={{ true: Colors.primary, false: Colors.border }} thumbColor={Colors.surface} />
               }
             />
-            {/* 인증되지 않은 주소로는 알림 메일을 보내지 않는다. 켜 두고 왜 안
-                오는지 모르는 상태를 없애려고, 미인증일 때만 이 줄을 띄운다. */}
-            {user && (user as any).email_verified === false && (
-              <>
-                <View style={styles.divider} />
-                <SettingRow
-                  icon="alert-circle" iconColor="#FF9500"
-                  title={language === 'ko' ? '이메일 인증이 필요해요' : 'Verify your email'}
-                  subtitle={
-                    resending
-                      ? (language === 'ko' ? '보내는 중...' : 'Sending...')
-                      : (language === 'ko'
-                          ? '인증 전에는 알림 메일이 나가지 않습니다 · 눌러서 인증 메일 받기'
-                          : 'Email notifications are paused until you verify · Tap to resend')
-                  }
-                  onPress={resending ? undefined : handleResendVerification}
-                />
-              </>
-            )}
+            {/* 푸시처럼 이메일도 원하는 사람만 붙인다. 붙이면 웹에서도 같은 구독이 보인다. */}
+            <View style={styles.divider} />
+            <SettingRow
+              icon={emailLinked ? 'checkmark-circle' : 'at'} iconColor={emailLinked ? Colors.success : Colors.primary}
+              title={emailLinked
+                ? (language === 'ko' ? '이메일 연결됨' : 'Email connected')
+                : (language === 'ko' ? '이메일 연결하기' : 'Connect email')}
+              subtitle={emailLinked
+                ? `${user?.email} · ${language === 'ko' ? '웹에서도 이 이메일로 들어가요' : 'Use it to sign in on the web'}`
+                : (language === 'ko'
+                    ? '알림 메일을 받고 웹에서도 보기 · 폰을 바꿔도 데이터를 지켜요'
+                    : 'Get email alerts, use the web, keep your data on a new phone')}
+              onPress={openEmailModal}
+            />
             <View style={styles.divider} />
             <SettingRow
               icon="time" iconColor="#5AC8FA"
@@ -484,17 +515,6 @@ export default function SettingsScreen() {
               onPress={() => setFeedbackModalVisible(true)}
             />
           </Card>
-
-          {/* 로그아웃 */}
-          <View style={styles.logoutCard}>
-            <GradientButton
-              label={t('settings.logout')}
-              icon="log-out-outline"
-              variant="danger"
-              size="lg"
-              onPress={handleLogout}
-            />
-          </View>
 
           {/* 계정 삭제 — Apple 심사 지침 5.1.1(v) */}
           <TouchableOpacity style={styles.deleteRow} onPress={openDeleteModal} activeOpacity={0.6}>
@@ -692,6 +712,94 @@ export default function SettingsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* 이메일 연결 모달: 이메일 → 6자리 코드 */}
+      <Modal transparent animationType="fade" visible={emailModalVisible} onRequestClose={() => setEmailModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <Pressable style={modalStyles.overlay} onPress={() => setEmailModalVisible(false)}>
+            <Pressable style={modalStyles.box} onPress={() => {}}>
+              <Text style={modalStyles.title}>
+                {emailStep === 'email'
+                  ? (language === 'ko' ? '이메일 연결' : 'Connect email')
+                  : (language === 'ko' ? '받은 코드를 넣어 주세요' : 'Enter the code')}
+              </Text>
+              <Text style={modalStyles.subtitle}>
+                {emailStep === 'email'
+                  ? (language === 'ko'
+                      ? '확인 코드를 보내 드려요. 예전에 가입한 이메일이면 그 계정의 구독을 그대로 불러옵니다.'
+                      : "We'll send a code. If you signed up with this email before, your subscriptions come back.")
+                  : (language === 'ko'
+                      ? `${emailInput.trim()}로 보낸 6자리 코드를 넣어 주세요. 10분 동안 쓸 수 있어요.`
+                      : `Enter the 6-digit code sent to ${emailInput.trim()}. It works for 10 minutes.`)}
+              </Text>
+              <View style={modalStyles.inputRow}>
+                {emailStep === 'email' ? (
+                  <TextInput
+                    style={[modalStyles.input, { fontSize: FontSize.md }]}
+                    value={emailInput}
+                    onChangeText={(v) => { setEmailInput(v); setEmailError(''); }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    placeholder="you@example.com"
+                    placeholderTextColor={Colors.textTertiary}
+                    onSubmitEditing={handleSendCode}
+                  />
+                ) : (
+                  <TextInput
+                    style={[modalStyles.input, { fontSize: 22, letterSpacing: 8, textAlign: 'center' }]}
+                    value={codeInput}
+                    onChangeText={(v) => { setCodeInput(v.replace(/[^0-9]/g, '').slice(0, 6)); setEmailError(''); }}
+                    keyboardType="number-pad"
+                    autoComplete="one-time-code"
+                    textContentType="oneTimeCode"
+                    maxLength={6}
+                    placeholder="000000"
+                    placeholderTextColor={Colors.textTertiary}
+                    onSubmitEditing={handleVerifyCode}
+                  />
+                )}
+              </View>
+              {!!emailError && (
+                <Text style={{ color: Colors.dangerText, fontSize: FontSize.xs, marginTop: 8 }}>{emailError}</Text>
+              )}
+              {emailStep === 'code' && (
+                <TouchableOpacity onPress={handleSendCode} disabled={emailBusy} style={{ marginTop: 10 }}>
+                  <Text style={{ color: Colors.primary, fontSize: FontSize.xs, fontWeight: '600' }}>
+                    {language === 'ko' ? '코드 다시 받기' : 'Resend code'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <View style={modalStyles.btnRow}>
+                <TouchableOpacity
+                  style={[modalStyles.btn, modalStyles.btnCancel]}
+                  onPress={() => (emailStep === 'code' ? setEmailStep('email') : setEmailModalVisible(false))}
+                >
+                  <Text style={modalStyles.btnCancelText}>
+                    {emailStep === 'code' ? (language === 'ko' ? '이전' : 'Back') : t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[modalStyles.btn, modalStyles.btnSave,
+                    (emailBusy || (emailStep === 'code' && codeInput.length !== 6)) && modalStyles.btnDisabled]}
+                  onPress={emailStep === 'email' ? handleSendCode : handleVerifyCode}
+                  disabled={emailBusy || (emailStep === 'code' && codeInput.length !== 6)}
+                >
+                  <Text style={modalStyles.btnSaveText}>
+                    {emailBusy
+                      ? (language === 'ko' ? '잠시만요...' : 'Please wait...')
+                      : emailStep === 'email'
+                        ? (language === 'ko' ? '코드 받기' : 'Send code')
+                        : (language === 'ko' ? '연결하기' : 'Connect')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* 계정 삭제 확인 모달 */}
       <Modal transparent animationType="fade" visible={deleteModalVisible} onRequestClose={() => setDeleteModalVisible(false)}>
         <Pressable style={modalStyles.overlay} onPress={() => setDeleteModalVisible(false)}>
@@ -700,26 +808,14 @@ export default function SettingsScreen() {
             <Text style={[modalStyles.subtitle, { color: Colors.dangerText }]}>
               {t('settings.deleteWarning')}
             </Text>
-            <Text style={modalStyles.fieldLabel}>{t('settings.deletePasswordLabel')}</Text>
-            <View style={modalStyles.inputRow}>
-              <TextInput
-                style={[modalStyles.input, { fontSize: FontSize.md }]}
-                value={deletePassword}
-                onChangeText={setDeletePassword}
-                secureTextEntry
-                autoCapitalize="none"
-                placeholder="••••••••"
-                placeholderTextColor={Colors.textTertiary}
-              />
-            </View>
             <View style={modalStyles.btnRow}>
               <TouchableOpacity style={[modalStyles.btn, modalStyles.btnCancel]} onPress={() => setDeleteModalVisible(false)}>
                 <Text style={modalStyles.btnCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[modalStyles.btn, modalStyles.btnDelete, (!deletePassword || deleting) && modalStyles.btnDisabled]}
+                style={[modalStyles.btn, modalStyles.btnDelete, deleting && modalStyles.btnDisabled]}
                 onPress={handleDeleteAccount}
-                disabled={!deletePassword || deleting}
+                disabled={deleting}
               >
                 <Text style={modalStyles.btnSaveText}>{t('settings.deleteConfirm')}</Text>
               </TouchableOpacity>

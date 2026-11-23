@@ -35,9 +35,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     # 결제일 알림을 보고 여는 앱이라 한 달에 한 번만 열어 보는 사람도 있다.
-    # 7일이면 그런 사람은 매번 다시 로그인해야 한다. 갱신할 때마다 새 토큰이
-    # 나가므로(회전), 이 안에 한 번만 열면 로그인이 계속 유지된다.
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 60
+    # 갱신할 때마다 새 토큰이 나가므로(회전), 이 안에 한 번만 열면 계속 이어진다.
+    # 앱에 로그인이 없어진 뒤로는 이 토큰이 기기 계정의 유일한 열쇠다. 기한이 지나면
+    # 이메일을 붙이지 않은 사람은 데이터를 잃으므로 1년으로 넉넉히 둔다.
+    # 잃어버린 기기는 token_version을 올려 끊는다.
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 365
     # 콤마 구분 문자열 (pydantic-settings의 list-env JSON 파싱 함정을 피하기 위해 str로 둠)
     ALLOWED_ORIGINS: str = (
         "http://localhost:3000,http://127.0.0.1:3000,"

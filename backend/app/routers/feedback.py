@@ -42,7 +42,7 @@ def _build_body(user: User, data: FeedbackRequest, request: Request) -> str:
         "",
         "─" * 40,
         f"종류    : {_TYPE_LABEL.get(data.type, data.type.value)}",
-        f"보낸이  : {user.username} <{user.email}>",
+        f"보낸이  : {user.username} <{user.email or '이메일 미연결'}>",
         f"사용자ID: {user.id}",
         f"시각    : {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
     ]
@@ -96,9 +96,10 @@ async def send_feedback(
     띄우면 같은 신고를 반복해서 보내게 된다.
     """
     body = _build_body(current_user, data, request)
-    logger.info("[feedback] from=%s type=%s\n%s", current_user.email, data.type.value, body)
+    sender = current_user.email or f"기기계정 {current_user.id}"
+    logger.info("[feedback] from=%s type=%s\n%s", sender, data.type.value, body)
 
-    subject = f"[SubFlow] {_TYPE_LABEL.get(data.type, '문의')} - {current_user.email}"
+    subject = f"[SubFlow] {_TYPE_LABEL.get(data.type, '문의')} - {sender}"
     # 신고자 주소를 회신 주소로 달아 두면 받은 메일에서 바로 답장할 수 있다
     sent = await send_email(
         settings.FEEDBACK_EMAIL, subject, body,

@@ -58,18 +58,16 @@ export default function SettingsPage() {
 
   // ── 회원 탈퇴 ──
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deletePassword, setDeletePassword] = useState("");
   const [deleting, setDeleting] = useState(false);
 
   const handleDeleteAccount = async () => {
-    if (!deletePassword) return;
     setDeleting(true);
     try {
-      await authApi.deleteAccount(deletePassword);
+      await authApi.deleteAccount();
       toast.success(tr("계정이 삭제되었습니다."));
       logout();
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || tr("비밀번호가 올바르지 않습니다."));
+      toast.error(e?.response?.data?.detail || tr("삭제하지 못했습니다. 잠시 후 다시 시도해주세요."));
     } finally {
       setDeleting(false);
     }
@@ -511,27 +509,16 @@ export default function SettingsPage() {
               <p className="text-sm text-rose-700">
                 {tr("정말 탈퇴하시겠어요? 구독 내역, 결제 이력, 알림 설정이 모두 사라집니다.")}
               </p>
-              <label className="mt-3 block text-sm font-medium text-slate-500">
-                {tr("확인을 위해 비밀번호를 입력해주세요")}
-              </label>
-              <input
-                type="password"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="••••••••"
-                className="glass-input mt-1 block w-full max-w-sm rounded-lg px-3 py-2 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
-              />
               <div className="mt-3 flex justify-end gap-2">
                 <button
-                  onClick={() => { setDeleteOpen(false); setDeletePassword(""); }}
+                  onClick={() => setDeleteOpen(false)}
                   className="glass px-4 py-2 text-sm font-medium text-slate-500"
                 >
                   {tr("취소")}
                 </button>
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={!deletePassword || deleting}
+                  disabled={deleting}
                   className="btn-danger-glass px-4 py-2 text-sm font-medium disabled:opacity-50"
                 >
                   {deleting ? tr("삭제 중...") : tr("영구 삭제")}

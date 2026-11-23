@@ -50,11 +50,33 @@ class VerifyEmailRequest(BaseModel):
 
 
 class DeleteAccountRequest(BaseModel):
-    """계정 삭제는 되돌릴 수 없으므로 비밀번호를 한 번 더 받는다
-    — 잠금 해제된 폰을 잠깐 집어든 사람이 지울 수 없게."""
+    """계정 삭제는 되돌릴 수 없으므로 한 번 더 확인받는다.
 
-    password: str
+    구버전 앱은 비밀번호를 보낸다. 새 앱은 로그인이 없어 비밀번호가 없으므로
+    화면에서 한 번 더 누른 confirm=true를 보낸다.
+    """
+
+    password: str | None = None
+    confirm: bool = False
 
 
 class SimpleMessage(BaseModel):
     message: str
+
+
+class EmailCodeRequest(BaseModel):
+    email: EmailStr
+
+
+class EmailCodeVerifyRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class LinkEmailResponse(BaseModel):
+    """이메일을 붙인 결과. merged면 이미 있던 계정으로 갈아탔으니 새 토큰을 써야 한다."""
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    merged: bool

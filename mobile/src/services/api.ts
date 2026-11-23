@@ -2,7 +2,6 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
 
 // 개발 중 백엔드 호스트를 Expo 개발 서버(Metro) 호스트에서 자동 추론한다.
 // → 폰이 이미 붙어 있는 PC의 IP를 그대로 사용하므로, IP가 바뀌어도 하드코딩 수정 불필요.
@@ -37,7 +36,11 @@ api.interceptors.request.use(async (config) => {
 // 다시 로그인해야 했다. 웹처럼 리프레시 토큰으로 조용히 갱신하고 원래 요청을
 // 다시 보낸다. 갱신까지 실패했을 때만 로그인 화면으로 보낸다.
 let refreshing: Promise<string | null> | null = null;
-let lastAuthRedirect = 0;
+
+// 열쇠(리프레시 토큰)까지 안 먹을 때 부를 함수. authStore가 등록한다
+// (여기서 authStore를 import하면 서로를 import하는 고리가 생긴다).
+let onAuthLost: (() => void) | null = null;
+export function setOnAuthLost(fn: () => void) { onAuthLost = fn; }
 
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = await AsyncStorage.getItem('refresh_token');
@@ -62,8 +65,8 @@ api.interceptors.response.use(
     const original: any = error.config ?? {};
     const url: string | undefined = original.url;
     const isAuthCall =
-      url?.includes('/auth/login') ||
-      url?.includes('/auth/register') ||
+      url?.includes('/auth/device') ||
+      url?.includes('/auth/email/') ||
       url?.includes('/auth/refresh');
 
     if (error.response?.status === 401 && !isAuthCall && !original._retried) {
@@ -78,12 +81,10 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !isAuthCall) {
+      // 로그인 화면이 없으니 새 기기 계정으로 다시 시작한다. 이메일을 연결해 둔 사람은
+      // 설정에서 같은 이메일 코드를 넣으면 원래 계정으로 돌아간다.
       await AsyncStorage.multiRemove(['access_token', 'refresh_token']);
-      const now = Date.now();
-      if (now - lastAuthRedirect > 1500) {
-        lastAuthRedirect = now;
-        try { router.replace('/(auth)/login'); } catch { /* router 미준비 시 무시 */ }
-      }
+      onAuthLost?.();
     }
     return Promise.reject(error);
   }
@@ -93,18 +94,16 @@ export default api;
 
 // ── Auth ──
 export const authAPI = {
-  login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }),
-  register: (email: string, password: string, username: string) =>
-    api.post('/auth/register', { email, password, username }),
+  // 로그인 없이 시작: 이메일 없는 기기 계정을 받는다
+  createDevice: () => api.post('/auth/device'),
+  // 6자리 코드를 메일로 보낸다. 가입 여부와 상관없이 같은 답을 준다
+  sendEmailCode: (email: string) => api.post('/auth/email/code', { email }),
+  // 지금 계정에 이메일을 붙인다. 이미 있던 계정이면 merged=true와 그 계정의 토큰이 온다
+  linkEmail: (email: string, code: string) => api.post('/auth/email/link', { email, code }),
   getMe: () => api.get('/auth/me'),
   updateMe: (data: { username?: string }) => api.put('/auth/me', data),
-  // 계정 삭제 — 본문에 비밀번호를 실어 보낸다 (axios는 delete에 data 지원)
-  deleteAccount: (password: string) => api.delete('/auth/me', { data: { password } }),
-  // 재설정 메일 요청. 가입 여부와 무관하게 항상 성공으로 답한다(가입자 명단이 새지 않도록).
-  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
-  // 인증 메일 재발송. 링크는 웹앱(app.mysubflow.app)으로 열린다.
-  resendVerification: () => api.post('/auth/verify-email/resend'),
+  // 계정 삭제. 로그인이 없어 비밀번호 대신 화면에서 한 번 더 확인받은 confirm을 보낸다
+  deleteAccount: () => api.delete('/auth/me', { data: { confirm: true } }),
 };
 
 // ── Subscriptions ──
