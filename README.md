@@ -438,8 +438,10 @@ APScheduler가 API 프로세스 안에서 함께 돈다 (`app/scheduler.py`, 시
 - [x] iOS App Store 심사 통과
 - [x] App Store 출시 (2026-09-02)
 - [x] v1.0.1 출시 — 렌탈 분류·약정 기간·기기 종류. 이후 수정은 OTA로 배포
+- [x] 로그인 없이 시작 — 기기 계정 + 원할 때만 이메일 6자리 코드 연결 (OTA, 2026-11-23)
+- [x] v1.0.2 출시 — 아이폰 홈 화면 위젯 3종 (2026-11-24)
 - [ ] Android — Play Console 등록 및 출시
-- [ ] 소셜 로그인 (Google / Kakao) — 각 개발자 앱 자격증명 발급 후
+- [ ] Android 홈 화면 위젯
 
 ## 라이선스
 
