@@ -19,12 +19,12 @@ export function toKrw(
   return Math.round(amount * rate);
 }
 
-/** '≈ ₩28,225' 형태의 병기 문자열. 원화이거나 환율이 없으면 null. */
+/** '≈₩28,225' 형태의 병기 문자열. 원화이거나 환율이 없으면 null. */
 export function krwHint(
   amount: number,
   currency: string,
   rate?: number | null
 ): string | null {
   if (!currency || currency === "KRW" || !rate || !amount) return null;
-  return `≈ ₩${new Intl.NumberFormat("ko-KR").format(Math.round(amount * rate))}`;
+  return `≈₩${new Intl.NumberFormat("ko-KR").format(Math.round(amount * rate))}`;
 }

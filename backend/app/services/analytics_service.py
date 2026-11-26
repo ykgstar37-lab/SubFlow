@@ -36,8 +36,8 @@ from app.schemas.analytics import (
     PriceChangeAlertResponse,
 )
 from app.services.renewal_service import _add_months
-from app.utils.cost import to_monthly_cost, to_monthly_cost_krw
-from app.utils.exchange_rate import get_exchange_rates, to_krw
+from app.utils.cost import sub_charge_krw, sub_monthly_krw, to_monthly_cost, to_monthly_cost_krw
+from app.utils.exchange_rate import get_exchange_rates
 from app.utils.vat import with_vat
 from app.utils.visibility import only_visible_plans, visible_plans
 
@@ -117,7 +117,7 @@ class AnalyticsService:
                 total_yearly_cost=Decimal("0"),
             )
 
-        monthly_krw_list = [await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency) for s in subs]
+        monthly_krw_list = [await sub_monthly_krw(s) for s in subs]
         total_monthly = sum(monthly_krw_list, Decimal("0"))
         total_yearly = total_monthly * 12
 
@@ -128,7 +128,7 @@ class AnalyticsService:
         next_renewal = None
         if upcoming:
             s = upcoming[0]
-            cost_krw = await to_krw(Decimal(str(s.cost)), s.currency)
+            cost_krw = await sub_charge_krw(s, personal=False)
             next_renewal = NextRenewalInfo(
                 service_name=s.service_name,
                 next_billing_date=s.next_billing_date.isoformat(),
@@ -161,7 +161,7 @@ class AnalyticsService:
             cat_name = s.category.name if s.category else "미분류"
             cat_color = s.category.color if s.category else None
             cat_icon = s.category.icon if s.category else None
-            monthly = await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency)
+            monthly = await sub_monthly_krw(s)
             by_category[cat_name]["total"] += monthly
             by_category[cat_name]["count"] += 1
             # 첫 번째로 발견된 카테고리 메타 보존
@@ -215,9 +215,7 @@ class AnalyticsService:
                 # Skip cancelled subscriptions for future months after cancellation
                 if s.status == SubscriptionStatus.CANCELLED:
                     continue
-                month_total += await to_monthly_cost_krw(
-                    s.personal_cost, s.billing_cycle, s.currency
-                )
+                month_total += await sub_monthly_krw(s)
 
             data.append(MonthlyTotal(year=y, month=m, total=month_total.quantize(Decimal("1"))))
 
@@ -234,9 +232,7 @@ class AnalyticsService:
                 continue
             if s.start_date.year > next_y or (s.start_date.year == next_y and s.start_date.month > next_m):
                 continue
-            forecast_total += await to_monthly_cost_krw(
-                s.personal_cost, s.billing_cycle, s.currency
-            )
+            forecast_total += await sub_monthly_krw(s)
 
         data.append(MonthlyTotal(year=next_y, month=next_m, total=forecast_total.quantize(Decimal("1")), is_forecast=True))
 
@@ -262,7 +258,7 @@ class AnalyticsService:
             total_monthly = Decimal("0")
             items: list[OverlapService] = []
             for s in cat_subs:
-                monthly_krw = await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency)
+                monthly_krw = await sub_monthly_krw(s)
                 total_monthly += monthly_krw
                 items.append(OverlapService(
                     subscription_id=str(s.id),
@@ -347,7 +343,7 @@ class AnalyticsService:
 
         for s in subs:
             days_remaining = (s.next_billing_date - today).days
-            cost_krw = await to_krw(Decimal(str(s.cost)), s.currency)
+            cost_krw = await sub_charge_krw(s, personal=False)
             category_name = s.category.name if s.category else None
 
             trials.append(TrialSubscriptionItem(
@@ -392,9 +388,7 @@ class AnalyticsService:
             if not s.plan or not s.service:
                 continue
 
-            current_monthly_krw = await to_monthly_cost_krw(
-                Decimal(str(s.cost)), s.billing_cycle, s.currency
-            )
+            current_monthly_krw = await sub_monthly_krw(s, personal=False)
 
             cheaper_plans: list[CheaperPlanInfo] = []
             for plan in s.service.plans:
@@ -558,7 +552,7 @@ class AnalyticsService:
 
         monthly_average = sum(
             [
-                await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency)
+                await sub_monthly_krw(s)
                 for s in subs
             ],
             Decimal("0"),
@@ -576,7 +570,7 @@ class AnalyticsService:
             )
             if not charges:
                 continue
-            amount = await to_krw(s.personal_cost, s.currency)
+            amount = await sub_charge_krw(s)
             current_spending += amount * len(charges)
             # 월간·주간은 매달 있는 돈이라 설명할 게 없다. 이번 달에만 얹힌 것만 알린다.
             if s.billing_cycle in (BillingCycle.YEARLY, BillingCycle.QUARTERLY):

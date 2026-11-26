@@ -84,7 +84,7 @@ async function doSync() {
 
     const seen = new Set<string>();
     const events: Record<string, unknown>[] = [];
-    const byDay: Record<string, { amount: number; currency: string }[]> = {};
+    const byDay: Record<string, { amount: number; currency: string; paidKrw: number | null }[]> = {};
 
     for (const ev of (evRes.data?.events ?? []) as any[]) {
       const d = String(ev.date ?? '').slice(0, 10);
@@ -101,7 +101,11 @@ async function doSync() {
         n: name,
         ...(logo ? { l: logo, f: FULL_BLEED.has(name) } : { bg: brand?.bg ?? '#6B7D8E', fg: brand?.text ?? '#FFFFFF' }),
       });
-      (byDay[d] ??= []).push({ amount: Number(ev.cost ?? 0), currency: String(ev.currency ?? 'KRW') });
+      (byDay[d] ??= []).push({
+        amount: Number(ev.cost ?? 0),
+        currency: String(ev.currency ?? 'KRW'),
+        paidKrw: ev.paid_krw != null ? Number(ev.paid_krw) : null,
+      });
     }
 
     // 그날 합계. 통화가 하나면 그 통화로, 섞이면 원화로 환산한다(환율이 없으면 통화별로 나열)
@@ -110,8 +114,11 @@ async function doSync() {
       const currencies = [...new Set(list.map((x) => x.currency))];
       if (currencies.length === 1) {
         totals[d] = formatPrice(list.reduce((a, x) => a + x.amount, 0), currencies[0]);
-      } else if (currencies.every((c) => c === 'KRW' || rates[c])) {
-        totals[d] = formatPrice(list.reduce((a, x) => a + x.amount * (x.currency === 'KRW' ? 1 : rates[x.currency]), 0), 'KRW');
+      } else if (list.every((x) => x.currency === 'KRW' || x.paidKrw != null || rates[x.currency])) {
+        // 실제 결제 원화를 넣어 둔 구독은 환율 대신 그 값으로 더한다
+        const won = (x: (typeof list)[number]) =>
+          x.currency === 'KRW' ? x.amount : x.paidKrw ?? x.amount * rates[x.currency];
+        totals[d] = formatPrice(list.reduce((a, x) => a + won(x), 0), 'KRW');
       } else {
         totals[d] = currencies
           .map((c) => formatPrice(list.filter((x) => x.currency === c).reduce((a, x) => a + x.amount, 0), c))
@@ -119,8 +126,28 @@ async function doSync() {
       }
     }
 
+    // 외화가 낀 날은 원화로 얼마인지 작게 병기한다(작은 위젯 합계 옆 파란 글씨).
+    // 사용자가 '실제 결제 금액'을 넣어 둔 구독은 그 값을, 아니면 환율 환산값을 쓴다.
+    // 전부 실제 금액이면 '≈' 없이, 하나라도 환산이면 '≈'를 붙인다.
+    // 섞인 날은 합계가 이미 원화라 병기하지 않는다.
+    const krw: Record<string, string> = {};
+    for (const [d, list] of Object.entries(byDay)) {
+      if (list.every((x) => x.currency === 'KRW')) continue;
+      if (totals[d]?.startsWith('₩')) continue;
+      let sum = 0;
+      let approx = false;
+      let ok = true;
+      for (const x of list) {
+        if (x.currency === 'KRW') sum += x.amount;
+        else if (x.paidKrw != null) sum += x.paidKrw;
+        else if (rates[x.currency]) { sum += x.amount * rates[x.currency]; approx = true; }
+        else ok = false;
+      }
+      if (ok) krw[d] = `${approx ? '≈' : ''}₩${Math.round(sum).toLocaleString()}`;
+    }
+
     const lang = useSettingsStore.getState().language ?? 'ko';
-    storage!.set(KEY, JSON.stringify({ events, totals, lang }));
+    storage!.set(KEY, JSON.stringify({ events, totals, krw, lang }));
     reload?.();
     status = `ok ${events.length} ${stamp()}`;
   } catch (e: any) {

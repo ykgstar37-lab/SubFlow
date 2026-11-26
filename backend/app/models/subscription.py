@@ -67,6 +67,10 @@ class Subscription(Base):
     member_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False, server_default="1")
 
     initial_exchange_rate: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    # 외화 구독이 카드에 실제로 찍힌 원화 금액 (1회 결제, 분담 전 전체 금액 — cost와 같은 기준).
+    # 환율 환산값은 카드사 환율·수수료 때문에 실제 청구액과 어긋난다. 사용자가 직접
+    # 넣으면 환산 대신 이 값을 쓴다. 금액이나 통화가 바뀌면 맞지 않으므로 지운다.
+    paid_krw: Mapped[Decimal | None] = mapped_column(Numeric(12, 0), nullable=True)
 
     service_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("services.id"), nullable=True)
     plan_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("service_plans.id"), nullable=True)
@@ -76,6 +80,13 @@ class Subscription(Base):
         """분담 인원을 반영한 1인당(내) 비용."""
         count = self.member_count or 1
         return Decimal(str(self.cost)) / count
+
+    @property
+    def personal_paid_krw(self) -> Decimal | None:
+        """실제 결제 원화 금액의 내 몫. 넣지 않았거나 원화 구독이면 None."""
+        if self.paid_krw is None or self.currency == "KRW":
+            return None
+        return Decimal(str(self.paid_krw)) / (self.member_count or 1)
 
     user = relationship("User", back_populates="subscriptions")
     category = relationship("Category", back_populates="subscriptions")

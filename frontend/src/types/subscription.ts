@@ -33,6 +33,8 @@ export interface Subscription {
   monthly_cost_krw?: number;
   /** 이 구독 통화의 현재 환율(1 통화 = ? KRW). 원화 구독은 없음. */
   exchange_rate_krw?: number;
+  /** 사용자가 넣은 실제 결제 원화 금액(1회 결제, 분담 전). 없으면 환율 환산. */
+  paid_krw?: number | null;
   /** 렌탈 등 약정 종료일. 없으면 약정 없음 */
   contract_end_date?: string | null;
   /** 렌탈 기기 종류("정수기")와 아이콘(이모지) */

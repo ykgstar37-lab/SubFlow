@@ -45,6 +45,7 @@ struct WEvent: Codable, Hashable {
 struct WPayload: Codable {
   let events: [WEvent]
   let totals: [String: String]  // 날짜 → 그날 결제 합계 문자열
+  let krw: [String: String]?    // 날짜 → 외화 합계의 원화 병기 ("≈₩30,800"). 예전 앱이 쓴 JSON엔 없다
   let lang: String?
 }
 
@@ -91,6 +92,7 @@ struct Model {
   let today: Date
   let byDay: [String: [WEvent]]
   let totals: [String: String]
+  let krw: [String: String]
   let ko: Bool
   let hasData: Bool
 
@@ -100,6 +102,7 @@ struct Model {
     for e in payload?.events ?? [] { map[e.d, default: []].append(e) }
     byDay = map
     totals = payload?.totals ?? [:]
+    krw = payload?.krw ?? [:]
     ko = (payload?.lang ?? "ko") != "en"
     hasData = payload != nil
   }
@@ -170,6 +173,7 @@ struct Provider: TimelineProvider {
         WEvent(d: d(9), n: "Netflix", l: "netflix", f: false, bg: nil, fg: nil),
       ],
       totals: [d(1): "₩43,000", d(5): "₩9,900", d(9): "₩17,000"],
+      krw: nil,
       lang: "ko"
     )
   }
@@ -372,11 +376,24 @@ struct SmallView: View {
           ForEach(Array(evs.prefix(3).enumerated()), id: \.offset) { _, e in LogoView(e: e, size: 20) }
           if evs.count > 3 { MoreBadge(n: evs.count - 3, height: 20) }
         }
-        Text(m.totals[key(d)] ?? "")
-          .font(.system(size: 16, weight: .bold))
-          .monospacedDigit()
-          .foregroundColor(.appText)
-          .padding(.top, 6)
+        // 외화면 옆에 원화로 대략 얼마인지 파랗게 작게 붙인다
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+          Text(m.totals[key(d)] ?? "")
+            .font(.system(size: 16, weight: .bold))
+            .monospacedDigit()
+            .foregroundColor(.appText)
+            .lineLimit(1)
+            .layoutPriority(1)
+          if let won = m.krw[key(d)] {
+            Text(won)
+              .font(.system(size: 10, weight: .semibold))
+              .monospacedDigit()
+              .foregroundColor(.appPrimary)
+              .lineLimit(1)
+              .minimumScaleFactor(0.7)
+          }
+        }
+        .padding(.top, 6)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     } else {

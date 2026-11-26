@@ -190,6 +190,49 @@ class TestRentalFields:
         assert data["contract_end_date"] is None
 
 
+class TestPaidKrw:
+    async def test_paid_krw_set_used_and_cleared(
+        self,
+        test_client: httpx.AsyncClient,
+        auth_headers: dict,
+    ):
+        """외화 구독에 실제 결제 원화를 넣으면 월 환산이 그 값을 따르고, 금액이 바뀌면 지워진다."""
+        created = await _create_subscription(test_client, auth_headers)  # $9.99 월간
+        url = f"/api/v1/subscriptions/{created['id']}"
+        assert created["paid_krw"] is None
+
+        resp = await test_client.put(url, json={"paid_krw": "14650"}, headers=auth_headers)
+        data = resp.json()
+        assert resp.status_code == 200
+        assert data["paid_krw"] == "14650"
+        assert data["monthly_cost_krw"] == "14650"
+
+        # 캘린더(위젯)에도 실린다
+        ev = (await test_client.get("/api/v1/subscriptions/calendar-events", headers=auth_headers)).json()
+        assert any(e["paid_krw"] == "14650" for e in ev["events"])
+
+        # 금액이 바뀌면 예전 실제 결제액은 맞지 않으므로 지운다
+        resp = await test_client.put(url, json={"cost": "12.99"}, headers=auth_headers)
+        assert resp.json()["paid_krw"] is None
+
+        # null로 직접 되돌릴 수도 있다
+        await test_client.put(url, json={"paid_krw": "15000"}, headers=auth_headers)
+        resp = await test_client.put(url, json={"paid_krw": None}, headers=auth_headers)
+        assert resp.json()["paid_krw"] is None
+
+    async def test_paid_krw_ignored_for_krw(
+        self,
+        test_client: httpx.AsyncClient,
+        auth_headers: dict,
+    ):
+        payload = _manual_subscription_payload() | {"currency": "KRW", "cost": "10000"}
+        created = await _create_subscription(test_client, auth_headers, payload)
+        resp = await test_client.put(
+            f"/api/v1/subscriptions/{created['id']}", json={"paid_krw": "12000"}, headers=auth_headers
+        )
+        assert resp.json()["paid_krw"] is None
+
+
 class TestDeleteSubscription:
     async def test_delete_subscription(
         self,

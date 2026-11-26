@@ -63,5 +63,5 @@ export function formatMoney(amount: number, currency: string): string {
 /** 외화 금액의 원화 환산 병기 문자열. 원화이거나 환율이 없으면 빈 문자열. */
 export function krwHint(amount: number, currency: string, rate?: number): string {
   if (currency === 'KRW' || !rate || !amount) return '';
-  return `≈ ₩${Math.round(amount * rate).toLocaleString()}`;
+  return `≈₩${Math.round(amount * rate).toLocaleString()}`;
 }

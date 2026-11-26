@@ -37,12 +37,15 @@ const cycleLabels = (): Record<string, string> => ({
 export default function SubscriptionCard({ subscription, onEdit, onDelete }: Props) {
   const costDisplay = new Intl.NumberFormat("ko-KR").format(subscription.cost);
   // 외화 구독은 원화 환산액을 함께 보여준다. 서버가 준 현재 환율을 쓴다.
-  const costKrw = krwHint(
+  // 앱에서 '실제 결제 금액'을 넣어 둔 구독은 환산 대신 그 금액을 보여준다.
+  const paid = subscription.currency !== "KRW" ? subscription.paid_krw : null;
+  const won = (n: number) => `₩${Math.round(n).toLocaleString()}`;
+  const costKrw = paid != null ? won(Number(paid)) : krwHint(
     subscription.cost,
     subscription.currency,
     subscription.exchange_rate_krw
   );
-  const shareKrw = krwHint(
+  const shareKrw = paid != null ? won(Number(paid) / subscription.member_count) : krwHint(
     subscription.cost / subscription.member_count,
     subscription.currency,
     subscription.exchange_rate_krw

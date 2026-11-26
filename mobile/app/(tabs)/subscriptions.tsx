@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Animated, Pressable, Alert, Linking, Share, PanResponder, Dimensions, Modal,
+  Animated, Pressable, Alert, Linking, Share, PanResponder, Dimensions, Modal, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ import { useBottomSheet } from '../../src/hooks/useBottomSheet';
 import { subscriptionAPI, servicesAPI } from '../../src/services/api';
 import { Colors, Spacing, FontSize, FontWeight, BorderRadius, Shadow, TabBarSpace } from '../../src/constants/theme';
 import { formatPrice, krwHint } from '../../src/constants/currency';
+import { syncWidget } from '../../src/services/widgetSync';
 
 type FilterType = 'all' | 'active' | 'paused' | 'cancelled';
 
@@ -45,6 +46,7 @@ type Sub = {
   cancelUrl?: string;
   memberCount: number;
   rateKrw?: number; // 이 통화의 현재 환율 (1 통화 = ? KRW). 원화면 없음
+  paidKrw: number | null; // 사용자가 넣은 실제 결제 원화 금액 (1회 결제, 분담 전). 없으면 환율 환산
   startDate: string;
   contractEnd: string | null; // 렌탈 등 약정 종료일. 없으면 약정 없음
   rentalItem: RentalItem | null; // 렌탈 기기 종류 (💧 정수기 등)
@@ -130,6 +132,9 @@ export default function SubscriptionsScreen() {
   const [editStatus, setEditStatus] = useState<Sub['status']>('active');
   const [editContractEnd, setEditContractEnd] = useState<string | null>(null);
   const [editRentalItem, setEditRentalItem] = useState<RentalItem | null>(null);
+  // '실제 결제 금액과 달라요' → 카드에 찍힌 원화 금액을 직접 넣는 칸
+  const [paidEditing, setPaidEditing] = useState(false);
+  const [paidInput, setPaidInput] = useState('');
   const slideAnim = useRef(new Animated.Value(600)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -158,6 +163,7 @@ export default function SubscriptionsScreen() {
     cancelUrl: s.service?.cancel_url ?? s.cancel_url ?? '',
     currency: s.currency ?? 'KRW',
     rateKrw: s.exchange_rate_krw != null ? Number(s.exchange_rate_krw) : undefined,
+    paidKrw: s.paid_krw != null ? Number(s.paid_krw) : null,
     memberCount: Math.max(1, Number(s.member_count ?? 1)),
     startDate: s.start_date ?? '',
     contractEnd: s.contract_end_date ?? null,
@@ -257,6 +263,47 @@ export default function SubscriptionsScreen() {
   const params = useLocalSearchParams<{ focus?: string; plan?: string }>();
   const handledFocus = useRef<string | null>(null);
 
+  /** 외화 구독의 원화 병기. 실제 결제 금액을 넣었으면 그 값을, 아니면 환율 환산(≈)을 보여 준다. */
+  const wonHint = (sub: Sub) =>
+    sub.currency !== 'KRW' && sub.paidKrw != null
+      ? `₩${Math.round(sub.paidKrw).toLocaleString()}`
+      : krwHint(sub.amount, sub.currency, sub.rateKrw);
+
+  /** 실제 결제 원화 금액을 저장한다(null이면 지우고 환율 환산으로 돌아간다). */
+  const savePaidKrw = async (sub: Sub, value: number | null) => {
+    try {
+      await subscriptionAPI.update(sub.id, { paid_krw: value });
+      setSelectedSub({ ...sub, paidKrw: value });
+      setPaidEditing(false);
+      setPaidInput('');
+      subsQuery.refetch();
+      overviewQuery.refetch();
+      syncWidget();
+    } catch {
+      Alert.alert(
+        language === 'ko' ? '저장하지 못했어요' : 'Could not save',
+        language === 'ko' ? '잠시 후 다시 시도해 주세요.' : 'Please try again later.',
+      );
+    }
+  };
+
+  /** 넣은 금액으로 정할지 한 번 묻는다. */
+  const confirmPaidKrw = (sub: Sub) => {
+    const value = Number(paidInput);
+    if (!value) return;
+    const won = `₩${value.toLocaleString()}`;
+    Alert.alert(
+      language === 'ko' ? `${won}으로 정할까요?` : `Use ${won}?`,
+      language === 'ko'
+        ? `앞으로 ${sub.name}의 원화 금액은 환율 대신 이 금액으로 계산해요. 월 총액·통계·위젯에 모두 반영돼요.`
+        : `${sub.name} will use this amount instead of the exchange rate in totals, stats and the widget.`,
+      [
+        { text: language === 'ko' ? '취소' : 'Cancel', style: 'cancel' },
+        { text: language === 'ko' ? '이 금액으로 정하기' : 'Use this amount', onPress: () => savePaidKrw(sub, value) },
+      ],
+    );
+  };
+
   const openModal = (sub: Sub) => {
     setSelectedSub(sub);
     setEditDate(sub.nextDate);
@@ -265,6 +312,8 @@ export default function SubscriptionsScreen() {
     setEditRentalItem(sub.rentalItem);
     setEditCategoryId(sub.categoryId);
     setEditStatus(sub.status);
+    setPaidEditing(false);
+    setPaidInput('');
     // 탭은 한 번 뜨면 계속 살아 있다. 서비스 탐색에서 방금 만든 분류가
     // 여기 목록에 없으면 고를 수가 없으므로, 시트를 열 때 다시 읽는다.
     categoriesQuery.refetch();
@@ -466,9 +515,7 @@ export default function SubscriptionsScreen() {
       <View style={styles.subRight}>
         <Text style={styles.subAmount}>{formatPrice(sub.amount, sub.currency)}</Text>
         {/* 외화 구독은 현재 환율 기준 원화를 아래에 병기 */}
-        {krwHint(sub.amount, sub.currency, sub.rateKrw) !== '' && (
-          <Text style={styles.subKrw}>{krwHint(sub.amount, sub.currency, sub.rateKrw)}</Text>
-        )}
+        {wonHint(sub) !== '' && <Text style={styles.subKrw}>{wonHint(sub)}</Text>}
         <Text style={styles.subDate}>{sub.nextDate}</Text>
       </View>
     </TouchableOpacity>
@@ -710,13 +757,13 @@ export default function SubscriptionsScreen() {
                   {formatPrice(selectedPlan ? selectedPlan.price : selectedSub.amount,
                                selectedPlan ? selectedPlan.currency : selectedSub.currency)}
                 </Text>
-                {krwHint(selectedPlan ? selectedPlan.price : selectedSub.amount,
-                         selectedPlan ? selectedPlan.currency : selectedSub.currency, selectedSub.rateKrw) !== '' && (
-                  <Text style={styles.subKrw}>
-                    {krwHint(selectedPlan ? selectedPlan.price : selectedSub.amount,
-                             selectedPlan ? selectedPlan.currency : selectedSub.currency, selectedSub.rateKrw)}
-                  </Text>
-                )}
+                {(() => {
+                  // 요금제를 새로 고르는 중이면 그 요금제의 환산값, 아니면 실제 결제 금액(넣었으면)
+                  const hint = selectedPlan
+                    ? krwHint(selectedPlan.price, selectedPlan.currency, selectedSub.rateKrw)
+                    : wonHint(selectedSub);
+                  return hint !== '' ? <Text style={styles.subKrw}>{hint}</Text> : null;
+                })()}
                 {selectedPlan && (
                   <Text style={{ fontSize: FontSize.xs, color: Colors.primary, marginTop: 2 }}>{selectedPlan.name}</Text>
                 )}
@@ -726,6 +773,78 @@ export default function SubscriptionsScreen() {
                 <Text style={styles.modalInfoValue}>{selectedPlan?.cycle ?? selectedSub.cycle}</Text>
               </View>
             </View>
+
+            {/* 외화 구독: 환산 원화가 카드에 찍힌 금액과 다를 때 실제 금액을 직접 넣는다 */}
+            {selectedSub.currency !== 'KRW' && !selectedPlan && (
+              <View style={styles.paidBox}>
+                {!paidEditing ? (
+                  <View style={styles.paidRow}>
+                    <Text style={styles.paidText}>
+                      {selectedSub.paidKrw != null
+                        ? (language === 'ko'
+                            ? `실제 결제 금액 ₩${Math.round(selectedSub.paidKrw).toLocaleString()}으로 계산 중`
+                            : `Using actual charge ₩${Math.round(selectedSub.paidKrw).toLocaleString()}`)
+                        : (language === 'ko' ? '원화는 오늘 환율로 환산한 대략적인 값이에요' : "KRW is estimated from today's rate")}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setPaidInput(selectedSub.paidKrw != null ? String(Math.round(selectedSub.paidKrw)) : '');
+                        setPaidEditing(true);
+                      }}
+                      hitSlop={8}
+                    >
+                      <Text style={styles.paidLink}>
+                        {selectedSub.paidKrw != null
+                          ? (language === 'ko' ? '수정' : 'Edit')
+                          : (language === 'ko' ? '실제 결제 금액과 달라요' : 'Actual charge differs')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={styles.paidQuestion}>
+                      {language === 'ko' ? '실제로 결제된 금액이 얼마인가요?' : 'How much were you actually charged?'}
+                    </Text>
+                    <Text style={styles.paidSub}>
+                      {language === 'ko'
+                        ? `카드 명세서에 찍힌 원화 금액 (1회 결제${selectedSub.memberCount > 1 ? ' 전체, 나눠 내기 전' : ''})`
+                        : 'The KRW amount on your card statement for one payment'}
+                    </Text>
+                    <View style={styles.paidInputRow}>
+                      <Text style={styles.paidWon}>₩</Text>
+                      <TextInput
+                        style={styles.paidInput}
+                        value={paidInput ? Number(paidInput).toLocaleString() : ''}
+                        onChangeText={(v) => setPaidInput(v.replace(/[^0-9]/g, '').slice(0, 9))}
+                        keyboardType="number-pad"
+                        placeholder={krwHint(selectedSub.amount, selectedSub.currency, selectedSub.rateKrw).replace(/[^0-9,]/g, '') || '0'}
+                        placeholderTextColor={Colors.textTertiary}
+                        autoFocus
+                        returnKeyType="done"
+                        onSubmitEditing={() => confirmPaidKrw(selectedSub)}
+                      />
+                    </View>
+                    <View style={styles.paidActions}>
+                      {selectedSub.paidKrw != null && (
+                        <TouchableOpacity onPress={() => savePaidKrw(selectedSub, null)} style={{ marginRight: 'auto' }}>
+                          <Text style={styles.paidReset}>{language === 'ko' ? '환율 환산으로 되돌리기' : 'Back to exchange rate'}</Text>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity onPress={() => setPaidEditing(false)} style={styles.paidBtnGhost}>
+                        <Text style={styles.paidBtnGhostText}>{language === 'ko' ? '취소' : 'Cancel'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => confirmPaidKrw(selectedSub)}
+                        disabled={!Number(paidInput)}
+                        style={[styles.paidBtn, !Number(paidInput) && { opacity: 0.4 }]}
+                      >
+                        <Text style={styles.paidBtnText}>{language === 'ko' ? '확인' : 'OK'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
 
             {/* 플랜 선택 드롭다운 */}
             {planPickerVisible && servicePlans.length > 0 && (
@@ -1226,6 +1345,21 @@ const styles = StyleSheet.create({
   modalEditInput: { backgroundColor: Colors.surfaceLight, borderRadius: 12, paddingHorizontal: 16, height: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   modalInfoItemTappable: { borderWidth: 1.5, borderColor: Colors.primaryLight },
   // 플랜 선택
+  paidBox: { backgroundColor: Colors.surfaceLight, borderRadius: 16, padding: 14, marginTop: -Spacing.sm, marginBottom: Spacing.lg },
+  paidRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
+  paidText: { flex: 1, fontSize: FontSize.xs, color: Colors.textSecondary },
+  paidLink: { fontSize: FontSize.xs, color: Colors.primary, fontWeight: FontWeight.bold },
+  paidQuestion: { fontSize: FontSize.sm, color: Colors.textPrimary, fontWeight: FontWeight.bold },
+  paidSub: { fontSize: FontSize.xs, color: Colors.textTertiary, marginTop: 2 },
+  paidInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: Colors.border, paddingHorizontal: 12 },
+  paidWon: { fontSize: FontSize.lg, color: Colors.textSecondary, fontWeight: FontWeight.bold, marginRight: 4 },
+  paidInput: { flex: 1, fontSize: FontSize.lg, color: Colors.textPrimary, fontWeight: FontWeight.bold, paddingVertical: 10 },
+  paidActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: Spacing.sm, marginTop: 10 },
+  paidReset: { fontSize: FontSize.xs, color: Colors.textTertiary, textDecorationLine: 'underline' },
+  paidBtnGhost: { paddingVertical: 8, paddingHorizontal: 14 },
+  paidBtnGhostText: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: FontWeight.bold },
+  paidBtn: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: 10, backgroundColor: Colors.primary },
+  paidBtnText: { fontSize: FontSize.sm, color: '#FFFFFF', fontWeight: FontWeight.bold },
   planPicker: { backgroundColor: Colors.surfaceLight, borderRadius: 16, padding: 14, marginBottom: Spacing.lg },
   planPickerTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.textSecondary, marginBottom: Spacing.md },
   planItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderRadius: 12, marginBottom: 4 },

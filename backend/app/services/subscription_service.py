@@ -13,7 +13,7 @@ from app.models.service_plan import ServicePlan
 from app.models.subscription import Subscription, SubscriptionStatus
 from app.models.subscription_history import HistoryEventType, SubscriptionHistory
 from app.schemas.subscription import SubscriptionCreateRequest, SubscriptionFromCatalogRequest, SubscriptionUpdateRequest
-from app.utils.cost import to_monthly_cost_krw
+from app.utils.cost import sub_monthly_krw
 from app.utils.exchange_rate import get_exchange_rates
 from app.utils.vat import with_vat
 from app.utils.visibility import visible_plans
@@ -39,7 +39,7 @@ async def annotate_monthly_krw(subs: list[Subscription]) -> list[Subscription]:
     """
     rates = await get_exchange_rates()
     for s in subs:
-        s.monthly_cost_krw = await to_monthly_cost_krw(s.personal_cost, s.billing_cycle, s.currency)
+        s.monthly_cost_krw = await sub_monthly_krw(s)
         s.exchange_rate_krw = None if s.currency == "KRW" else rates.get(s.currency.upper())
     return subs
 
@@ -282,6 +282,19 @@ class SubscriptionService:
                 new_value=new_plan_name,
             )
 
+        # 금액·통화·주기가 바뀌면 예전에 넣은 실제 결제 원화 금액은 더 맞지 않는다.
+        # 같은 요청에 새 값을 함께 보냈으면 그 값을 쓴다.
+        price_changed = (
+            ("cost" in update_data and Decimal(str(update_data["cost"])) != Decimal(str(subscription.cost)))
+            or ("currency" in update_data and update_data["currency"] != subscription.currency)
+            or ("billing_cycle" in update_data and update_data["billing_cycle"] != subscription.billing_cycle)
+        )
+        if price_changed and "paid_krw" not in update_data:
+            update_data["paid_krw"] = None
+        # 원화 구독에는 '실제 결제 원화'가 따로 있을 수 없다
+        if update_data.get("currency", subscription.currency) == "KRW":
+            update_data["paid_krw"] = None
+
         for key, value in update_data.items():
             setattr(subscription, key, value)
         await self.db.commit()
@@ -358,6 +371,8 @@ class SubscriptionService:
             subscription.cost = new_cost
             subscription.currency = new_plan.currency
             subscription.billing_cycle = new_plan.billing_cycle
+            # 요금제가 바뀌면 예전에 넣은 실제 결제 원화 금액은 더 맞지 않는다
+            subscription.paid_krw = None
 
         else:
             raise HTTPException(

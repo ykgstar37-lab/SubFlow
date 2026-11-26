@@ -15,6 +15,8 @@ class CalendarEvent(BaseModel):
     logo_url: str | None = None
     cost: Decimal
     currency: str
+    # 실제 결제된 원화 금액 (사용자가 넣은 값). 없으면 환율로 환산해 보여 준다.
+    paid_krw: Decimal | None = None
     category_name: str | None = None
     category_color: str | None = None
     date: str  # ISO date
@@ -88,6 +90,8 @@ class SubscriptionUpdateRequest(BaseModel):
     contract_end_date: date | None = None
     rental_item: str | None = Field(default=None, max_length=30)
     rental_item_icon: str | None = Field(default=None, max_length=16)
+    # 외화 구독의 실제 결제 원화 금액. null을 보내면 지우고 다시 환율 환산으로 돌아간다.
+    paid_krw: Decimal | None = Field(default=None, gt=0, le=Decimal("100000000"))
 
 
 class SubscriptionResponse(BaseModel):
@@ -128,6 +132,8 @@ class SubscriptionResponse(BaseModel):
     # 클라이언트가 '화면에 띄운 금액'을 그대로 환산해 병기할 수 있게 준다
     # (월 구독료든 연간 요금제든 표시 중인 값에 곱하기만 하면 된다).
     exchange_rate_krw: Decimal | None = None
+    # 사용자가 넣은 실제 결제 원화 금액 (1회 결제, 분담 전). 없으면 None.
+    paid_krw: Decimal | None = None
 
     model_config = {"from_attributes": True}
 
